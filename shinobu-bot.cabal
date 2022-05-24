@@ -1,0 +1,140 @@
+cabal-version:      3.0
+name:               shinobu-bot
+version:            0.1.0.0
+license:            AGPL-3.0-or-later
+license-file:       LICENSE
+extra-source-files: README.md
+
+executable shinobu-bot
+  hs-source-dirs:     src
+  main-is:            Main.hs
+  other-modules:
+    Prelude
+    Shinobu.Commands.BannedPatterns
+    Shinobu.Commands.CallNotification
+    Shinobu.Commands.CustomReactions
+    Shinobu.Commands.ErrorHandling
+    Shinobu.Commands.Misc
+    Shinobu.Commands.Shop
+    Shinobu.DB
+    Shinobu.Effects.Cooldown
+    Shinobu.Effects.IndexStore
+    Shinobu.Effects.KeyStore
+    Shinobu.Gacha
+    Shinobu.Gacha.Character
+    Shinobu.Gacha.DB
+    Shinobu.Gacha.Economy
+    Shinobu.Gacha.Embeds
+    Shinobu.Gacha.Pack
+    Shinobu.Gacha.Rarity
+    Shinobu.Gacha.User
+    Shinobu.Gacha.Waifu
+    Shinobu.Types
+    Shinobu.Util
+
+  build-depends:
+    , base                       >=4.14    && <5
+    , bytestring
+    , calamity                   >=0.4.0.0
+    , calamity-commands
+    , colour
+    , data-default
+    , data-flags
+    , di
+    , di-polysemy
+    , errors
+    , generic-lens
+    , lens
+    , mono-traversable
+    , polysemy                   >=1.7.0.0
+    , polysemy-plugin
+    , polysemy-RandomFu          >=0.4.3
+    , random
+    , random-fu
+    , regex
+    , relude
+    , rvar
+    , sqlite-simple
+    , sqlite-simple-interpolate
+    , stm
+    , string-interpolate
+    , template-haskell
+    , text
+    , text-show
+    , time
+    , witch
+
+  mixins:             base hiding (Prelude)
+  default-extensions:
+    NoCUSKs
+    NoMonomorphismRestriction
+    NoStarIsType
+    AllowAmbiguousTypes
+    BangPatterns
+    BinaryLiterals
+    BlockArguments
+    ConstraintKinds
+    DataKinds
+    DefaultSignatures
+    DeriveAnyClass
+    DeriveDataTypeable
+    DeriveFoldable
+    DeriveFunctor
+    DeriveGeneric
+    DeriveTraversable
+    DerivingStrategies
+    DerivingVia
+    DoAndIfThenElse
+    DuplicateRecordFields
+    EmptyCase
+    EmptyDataDecls
+    EmptyDataDecls
+    ExistentialQuantification
+    ExtendedDefaultRules
+    FlexibleContexts
+    FlexibleInstances
+    FunctionalDependencies
+    GADTs
+    GeneralizedNewtypeDeriving
+    IncoherentInstances
+    InstanceSigs
+    KindSignatures
+    LambdaCase
+    MultiParamTypeClasses
+    MultiWayIf
+    NamedFieldPuns
+    OverloadedLabels
+    OverloadedStrings
+    PartialTypeSignatures
+    PatternGuards
+    PatternSynonyms
+    PolyKinds
+    QuantifiedConstraints
+    QuasiQuotes
+    RankNTypes
+    RecordWildCards
+    RecursiveDo
+    RoleAnnotations
+    ScopedTypeVariables
+    StandaloneDeriving
+    StandaloneKindSignatures
+    StrictData
+    TemplateHaskell
+    TupleSections
+    TypeApplications
+    TypeFamilies
+    TypeOperators
+    TypeSynonymInstances
+    UndecidableInstances
+    ViewPatterns
+
+  ghc-options:
+    -O2 -fspecialise-aggressively -flate-specialise
+    -fplugin=Polysemy.Plugin -Wall -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wcompat -Widentities
+    -Wredundant-constraints -fhide-source-paths -Wpartial-fields
+    -fno-warn-unused-do-bind -fno-warn-type-defaults
+    -fno-warn-missing-signatures -threaded -rtsopts
+    "-with-rtsopts=-N -I0"
+
+  default-language:   Haskell2010

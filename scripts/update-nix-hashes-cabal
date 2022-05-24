@@ -1,0 +1,87 @@
+#!/usr/bin/env ruby
+
+require 'json'
+
+filename = ARGV[1]
+filename ||= 'cabal.project'
+
+def fetch_sha(url, tag)
+   cmd = "nix-prefetch-git '#{url}' '#{tag}' 2>/dev/null"
+   result = `#{cmd}`
+   if result.empty? then
+      warn "Error while running, aborting: #{cmd}"
+      exit 1
+   end
+   JSON.parse(result)['sha256']
+end
+
+in_repo = false
+indentation = nil
+skip_repo = false
+url = nil
+tag = nil
+previous_sha_line = nil
+
+# queue up the hash insertions
+insertions = []
+
+# append an empty line to make parsing easier
+lines_enum = Enumerator.new do |y|
+   File.foreach(filename) { |l| y << l }
+   y << "\n"
+end
+
+lines_enum.with_index do |line, line_number|
+   if in_repo
+      indentation ||= /^(\s+).*/.match(line)[1]
+      unless /^#{indentation}/.match(line)
+         unless skip_repo
+            sha = fetch_sha(url, tag)
+            insertions.push [line_number, "#{indentation}--sha256: #{sha}", previous_sha_line]
+            puts "#{url} -> #{sha}"
+         end
+
+         in_repo = false
+         indentation = nil
+         skip_repo = false
+         url = nil
+         tag = nil
+         previous_sha_line = nil
+      end
+   end
+
+   unless in_repo
+      in_repo = /^source-repository-package/.match(line)
+      next
+   end
+
+   type ||= /^\s+type: (.*)/.match(line)&.[](1)
+   skip_repo ||= type != "git" if type
+   next if skip_repo
+
+   unless url
+      url = /^\s+location: (.*)/.match(line)&.[](1)
+      next if url
+   end
+   
+   unless tag
+      tag = /^\s+tag: (.*)/.match(line)&.[](1)
+      next if tag
+   end
+
+   unless previous_sha_line
+      previous_sha_line = line_number if /^\s+--sha256:/.match(line)
+   end
+end
+
+# do the insertions/replacements (using sed cause I'm lazy)
+n = 0
+insertions.each do |x|
+   line, new_string, old_line = x
+   if old_line
+      `sed -i '#{old_line + n + 1}s/.*/#{new_string}/' '#{filename}'`
+   else
+      `sed -i '#{line + n}a\\#{new_string}' '#{filename}'`
+      n += 1
+   end
+end

@@ -1,0 +1,69 @@
+#!/usr/bin/env python
+
+import re
+import argparse
+import sys
+import subprocess
+import json
+
+
+def error(msg):
+    print(msg, file=sys.stderr)
+    exit(1)
+
+def tee(text):
+    print(text)
+    return text
+
+parser = argparse.ArgumentParser()
+parser.add_argument('link')
+parser.add_argument('--tag', '-t',
+                    type=str)
+parser.add_argument('--subdirs', '-s', '-d',
+                    nargs='+', type=str, help='Any number of subdirectories')
+parser.add_argument('--project-file',
+                    type=argparse.FileType('a'), default='cabal.project')
+
+
+args = parser.parse_args()
+
+link = args.link
+tag = args.tag
+
+if not link.startswith('https'):
+    link = 'https://github.com/' + link
+
+link_match = re.match(
+    r'(https:\/\/github\.com\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+)\/?(.*)?', link)
+location = link_match.group(1)
+if suffix := link_match.group(2):
+    if commit_match := re.match(r'commit/(\w+)', suffix):
+        tag = tag or commit_match.group(1)
+
+if tag is None:
+    error('ERROR: No commit tag was given')
+
+
+nix_hash_output = subprocess.check_output(['nix-prefetch-git', location, tag], stderr=subprocess.DEVNULL)
+nix_hash = json.loads(nix_hash_output)['sha256']
+
+
+for subdir in args.subdirs or []:
+    args.project_file.write(tee(f"""
+source-repository-package
+    type: git
+    location: {location}
+    tag: {tag}
+    subdir: {subdir}
+    --sha256: {nix_hash}
+"""))
+else:
+    args.project_file.write(tee(f"""
+source-repository-package
+    type: git
+    location: {location}
+    tag: {tag}
+    --sha256: {nix_hash}
+"""))
+
+args.project_file.close()

@@ -1,0 +1,10 @@
+packages: ./
+with-compiler: ghc-8.10.7
+index-state: 2022-05-20T00:00:00Z
+constraints: haskell-src-meta >= 0.8.8
+
+source-repository-package
+    type: git
+    location: https://github.com/ruby0b/sqlite-simple-interpolate
+    tag: f0354a86605349f317ab8bd3d3cabc28ffa9ab9d
+    --sha256: 12fc27rxx7ndrvpim6a97qr55cgyfz583mv90yn3n2g9dpzwv1xl
