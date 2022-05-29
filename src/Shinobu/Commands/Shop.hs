@@ -19,7 +19,7 @@ handlePackBuyResult = \case
       & #description ?~ [i|Your old #{rarityName (old ^. #rarity)} got refunded for #{showMoney amount}.|]
   AutoUpgraded upgraded ->
     waifuEmbed (upgraded ^. #waifu)
-      & #description ?~ [i|Your waifu got upgraded to a **#{upgraded ^. #waifu ^. #rarity}**|]
+      & #description ?~ [i|Your waifu got upgraded to a **#{upgraded ^. #waifu % #rarity}**|]
   NewWaifu new ->
     waifuEmbed (new ^. #waifu)
 

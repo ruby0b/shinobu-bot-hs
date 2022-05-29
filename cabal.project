@@ -8,3 +8,17 @@ source-repository-package
     location: https://github.com/ruby0b/sqlite-simple-interpolate
     tag: f0354a86605349f317ab8bd3d3cabc28ffa9ab9d
     --sha256: 12fc27rxx7ndrvpim6a97qr55cgyfz583mv90yn3n2g9dpzwv1xl
+
+source-repository-package
+    type: git
+    location: https://github.com/ruby0b/calamity
+    tag: 92fd59691f545d0956c61683ba2da3fa6b6cc631
+    subdir: calamity
+    --sha256: 0yk2n520bjsn8dpswbxgwwyr4g0g85fcf5rqin8jwjssd6vq40ym
+
+source-repository-package
+    type: git
+    location: https://github.com/ruby0b/calamity
+    tag: 92fd59691f545d0956c61683ba2da3fa6b6cc631
+    subdir: calamity-commands
+    --sha256: 0yk2n520bjsn8dpswbxgwwyr4g0g85fcf5rqin8jwjssd6vq40ym

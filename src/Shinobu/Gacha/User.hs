@@ -13,7 +13,9 @@ data GachaUser = GachaUser
     last_withdrawal :: Maybe Day,
     next_birthday :: Maybe Day
   }
-  deriving (Show, Generic, Eq)
+  deriving (Show, Eq)
+
+makeFieldLabelsNoPrefix ''GachaUser
 
 instance HasKey GachaUser where
   type Key GachaUser = Word64
@@ -35,7 +37,7 @@ addUser = putI
 
 addMoney :: [P.Error String, UserStore] :>> r => GachaUser -> Money -> P.Sem r GachaUser
 addMoney user money = do
-  let newUser = user & #balance +~ money
+  let newUser = user & #balance %~ (+ money)
   when (newUser ^. #balance < 0) $
     P.throw "negative balance"
   putI newUser

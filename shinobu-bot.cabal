@@ -43,9 +43,8 @@ executable shinobu-bot
     , di
     , di-polysemy
     , errors
-    , generic-lens
-    , lens
     , mono-traversable
+    , optics
     , polysemy                   >=1.7.0.0
     , polysemy-plugin
     , polysemy-RandomFu          >=0.4.3

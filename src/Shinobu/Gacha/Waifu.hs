@@ -13,17 +13,20 @@ data Waifu = Waifu
   { char :: Character,
     rarity :: Rarity
   }
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq)
 
 data OwnedWaifu = OwnedWaifu
   { waifu :: Waifu,
     owner :: GachaUser
   }
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq)
+
+makeFieldLabelsNoPrefix ''Waifu
+makeFieldLabelsNoPrefix ''OwnedWaifu
 
 instance HasKey OwnedWaifu where
   type Key OwnedWaifu = (Key GachaUser, Key Character)
-  getKey ow = (ow ^. #owner . to getKey, ow ^. #waifu . #char . to getKey)
+  getKey ow = (ow ^. #owner % to getKey, ow ^. #waifu % #char % to getKey)
 
 type WaifuStore = IndexStore OwnedWaifu
 
@@ -59,10 +62,10 @@ data WaifuGivingResult
 
 giveWaifu :: GachaUser -> Waifu -> P.Sem r WaifuGivingResult
 giveWaifu user newWaifu = do
-  let waifuName = newWaifu ^. #char . #name
+  let waifuName = newWaifu ^. #char % #name
   getWaifuByName user waifuName >>= \case
     Just oldWaifu -> do
-      let cmp = compare (newWaifu ^. #rarity) (oldWaifu ^. #waifu . #rarity)
+      let cmp = compare (newWaifu ^. #rarity) (oldWaifu ^. #waifu % #rarity)
       pure $ Duplicate oldWaifu cmp
     Nothing -> do
       newOwnedWaifu <- unsafeGiveWaifu user newWaifu
@@ -74,7 +77,7 @@ refund user ownedWaifu = unsafeRefund user (ownedWaifu ^. #waifu)
 -- TODO: using linear types to ensure payment would give us a safe upgrade
 unsafeAutoUpgrade :: P.Error String :> r => OwnedWaifu -> P.Sem r (OwnedWaifu, Money)
 unsafeAutoUpgrade ownedWaifu =
-  let rarity = ownedWaifu ^. #waifu . #rarity
+  let rarity = ownedWaifu ^. #waifu % #rarity
       user = ownedWaifu ^. #owner
       invalidRarity = [i|Unable to upgrade rarity #{rarity}|]
    in case rarity of

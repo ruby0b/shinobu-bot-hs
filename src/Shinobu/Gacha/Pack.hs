@@ -20,7 +20,9 @@ data Pack = Pack
     start_date :: Day,
     end_date :: Maybe Day
   }
-  deriving (Show, Generic)
+  deriving (Show)
+
+makeFieldLabelsNoPrefix ''Pack
 
 instance HasKey Pack where
   type Key Pack = Text

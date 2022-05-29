@@ -1,8 +1,7 @@
 module Prelude
-  ( module Control.Lens,
-    module Control.Lens.Operators,
+  ( module Optics,
+    module Optics.TH,
     module Data.Default,
-    module Data.Generics.Labels,
     module Data.String.Interpolate,
     module Relude,
     module Witch,
@@ -12,11 +11,10 @@ module Prelude
   )
 where
 
-import Control.Lens (to, view)
-import Control.Lens.Operators ((+~), (.~), (<>~), (?~), (^.))
 import Data.Default (def)
-import Data.Generics.Labels -- orphan instances
 import Data.String.Interpolate (i)
+import Optics (to, view, (%), (%?), (%~), (.~), (?~), (^.))
+import Optics.TH
 import qualified Polysemy as P
 import Relude hiding (group)
 import Witch (from)

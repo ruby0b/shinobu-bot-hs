@@ -11,12 +11,14 @@ import Shinobu.Gacha.Rarity
 import Shinobu.Gacha.Waifu
 
 mapToEmbedFields :: Foldable f => (a -> EmbedField) -> f a -> Embed
-mapToEmbedFields f xs = foldMap (\x embed -> embed & #fields <>~ [f x]) xs def
+mapToEmbedFields f xs = foldMap addField xs def
+  where
+    addField x embed = embed & #fields %~ (<> [f x])
 
 charEmbed :: Character -> Embed
 charEmbed c =
   def
-    & #title ?~ [i|#{c ^. #name} [#{c ^. (#series . #name)}]|]
+    & #title ?~ [i|#{c ^. #name} [#{c ^. #series % #name}]|]
     & #image .~ (embedImage . from <$> c ^. #image_url)
 
 waifuEmbed :: Waifu -> Embed
