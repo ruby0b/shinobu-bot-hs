@@ -3,9 +3,12 @@ module Shinobu.Commands.CallNotification where
 import Calamity
 import Control.Error (justZ)
 import qualified Data.Map.Strict as M
+import qualified Database.SQLite.Simple as SQL
+import Database.SQLite.Simple.QQ.Interpolated
 import qualified Polysemy as P
 import qualified Polysemy.NonDet as P
 import qualified Polysemy.Tagged as P
+import Shinobu.DB ()
 import Shinobu.Effects.Cooldown
 import Shinobu.Effects.KeyStore
 import Shinobu.Types
@@ -21,12 +24,12 @@ voiceChannelMembers voiceChannel = P.runNonDetMaybe do
   mapM memberFromVoiceState (view #voiceStates guild)
 
 runVcToTcInIO sem = do
-  vcToTcMap <-
-    newIORef $
-      M.fromList $
-        map
-          (bimap Snowflake Snowflake)
-          []
+  conn <- P.embed $ SQL.open "shinobu.db"
+  vals :: [(Snowflake VoiceChannel, Snowflake TextChannel)] <-
+    P.embed $
+      conn
+        & [iquery|SELECT * FROM voice_to_text|]
+  vcToTcMap <- newIORef $ M.fromList vals
   runKeyStoreIORef vcToTcMap . P.untag @VCTOTC $ sem
 
 data VCTOTC
