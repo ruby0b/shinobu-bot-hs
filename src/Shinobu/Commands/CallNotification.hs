@@ -60,6 +60,6 @@ callReaction = void $
       -- send the reaction
       textChannel <- justZ =<< vcToTc afterID
       user <- justZ =<< upgrade (after ^. #userID)
-      tellInfo textChannel [i|#{mention user} has started a call.|]
+      tellInfo textChannel [i|#{mention user} started a call.|]
 
       setCooldown 5

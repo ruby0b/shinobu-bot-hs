@@ -20,7 +20,7 @@
               # This overlay adds our project to pkgs
               shinobu-bot = final.haskell-nix.project' rec {
                 src = ./.;
-                compiler-nix-name = "ghc8107";
+                compiler-nix-name = "ghc923";
                 shell = {
                   tools = {
                     cabal = { };
