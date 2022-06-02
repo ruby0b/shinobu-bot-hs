@@ -19,6 +19,7 @@ executable shinobu-bot
     Shinobu.Commands.Misc
     Shinobu.Commands.Shop
     Shinobu.DB
+    Shinobu.Effects.CachedIO
     Shinobu.Effects.Cooldown
     Shinobu.Effects.IndexStore
     Shinobu.Effects.KeyStore
@@ -48,7 +49,7 @@ executable shinobu-bot
     , optics                     >=0.4.2
     , polysemy                   >=1.7
     , polysemy-plugin            >=0.4.3.0
-    , polysemy-RandomFu          >=0.6
+    , polysemy-RandomFu          >=0.5.0.0
     , random                     >=1.2.1.1
     , random-fu                  >=0.3.0.0
     , regex                      >=1.1.0.1

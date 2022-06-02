@@ -12,19 +12,75 @@
     flake-utils.lib.eachSystem [ "x86_64-linux" ]
       (system:
         let
+          modules = [
+            ({ lib, ... }: {
+              # https://github.com/input-output-hk/haskell.nix/issues/829
+              config.dontStrip = false;
+              # https://github.com/input-output-hk/haskell.nix/issues/1177
+              config.reinstallableLibGhc = true;
+            })
+          ];
           overlays = [
             haskellNix.overlay
             # why is this required even though sqlite3 is aliased in haskell.nix?
             (final: prev: { sqlite3 = final.sqlite; })
             (final: prev: {
-              # This overlay adds our project to pkgs
               shinobu-bot = final.haskell-nix.project' rec {
                 src = ./.;
                 compiler-nix-name = "ghc923";
+                inherit modules;
                 shell = {
                   tools = {
-                    cabal = { };
-                    haskell-language-server = { };
+                    cabal = { inherit modules; };
+                    haskell-language-server = {
+                      inherit modules;
+                      # adapted from https://github.com/haskell/haskell-language-server/blob/140f9040ae88352ca1140a750e7c26485fdfbe17/cabal.project
+                      cabalProject = ''
+                        packages: ./
+
+                        tests: true
+
+                        package *
+                          test-show-details: direct
+
+                        write-ghc-environment-files: never
+
+                        constraints:
+                          hyphenation +embed,
+                          hlint +ghc-lib,
+                          ghc-lib-parser-ex -auto,
+                          stylish-haskell +ghc-lib,
+                          haskell-language-server -haddockComments,
+
+                        allow-newer:
+                          -- ghc-9.2
+                          ----------
+                          hiedb:base,
+                          retrie:ghc-exactprint,
+
+                          -- for brittany
+                          -- https://github.com/lspitzner/multistate/pull/8
+                          multistate:base,
+                          -- https://github.com/lspitzner/data-tree-print/pull/3
+                          data-tree-print:base,
+                          -- https://github.com/lspitzner/butcher/pull/8
+                          butcher:base,
+
+                          -- for shake-bench
+                          Chart:lens,
+                          Chart-diagrams:lens,
+
+                          -- for ekg
+                          ekg-core:base,
+                          ekg-core:ghc-prim,
+                          ekg-wai:base,
+                          ekg-wai:time,
+
+                          -- for shake-bench
+                          Chart-diagrams:diagrams-core,
+                          SVGFonts:diagrams-core
+                      '';
+                    };
                   };
                   buildInputs = with pkgs; [
                     nixpkgs-fmt
