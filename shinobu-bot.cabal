@@ -59,7 +59,7 @@ executable shinobu-bot
     , stm                        >=2.5.0.2
     , string-interpolate         >=0.3.1.2
     , text                       >=1.2.5.0
-    , time                       >=1.11.1.1
+    , time                       >=1.9.2
     , witch                      >=1.0.0.2
 
   mixins:             base hiding (Prelude)

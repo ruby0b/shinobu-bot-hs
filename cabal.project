@@ -1,26 +1,6 @@
 packages: ./
-with-compiler: ghc-9.2.3
+with-compiler: ghc-8.10.7
 index-state: 2022-06-02T00:00:00Z
-allow-newer:
-    , polysemy-zoo:ghc-prim
-
-source-repository-package
-    type: git
-    location: https://github.com/polysemy-research/polysemy-zoo
-    tag: 3b696e7a72023a9a5b86bbb78a40c535a852f48d
-    --sha256: 0byshsjbdray7hf1xbw5m9wfjadvynqdgqdvc2y7nyrgs3mjprig
-
-source-repository-package
-    type: git
-    location: https://github.com/ezyang/compact
-    tag: 1e80459d16ca4d914c9bf9e0538493f7cf2fd610
-    --sha256: 1mz1fac21gif15r7738ibrp5vqdxdlsbaabdnsglfl1phiq08y96
-
-source-repository-package
-    type: git
-    location: https://github.com/kowainik/relude
-    tag: 02c6c48ef209ecf80aad44f2ed61b46e1641dbc1
-    --sha256: 0l04qnn0d5n3jc5fz57jybmpky9sq6bx005kzj1gfrmk2plgp5ih
 
 source-repository-package
     type: git
