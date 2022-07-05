@@ -41,7 +41,6 @@ main = do
     . P.runDiToIO di
     . P.runRandomIO
     . runCooldownInIO
-    . runVcToTcInIO
     . runGachaStoresIO
     . handleFailByLogging
     . stringErrorToFail

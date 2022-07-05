@@ -1,27 +1,30 @@
 module Shinobu.Commands.CallNotification where
 
 import Calamity
-import Control.Error (justZ)
+import Control.Error (fmapL, justZ)
 import qualified Data.Map.Strict as M
 import qualified Database.SQLite.Simple as SQL
 import Database.SQLite.Simple.QQ.Interpolated
 import qualified Polysemy as P
+import qualified Polysemy.Error as P
 import qualified Polysemy.NonDet as P
 import qualified Polysemy.Tagged as P
 import Shinobu.DB ()
 import Shinobu.Effects.Cooldown
 import Shinobu.Effects.KeyStore
 import Shinobu.Types
-import Shinobu.Util (tellInfo)
+import Shinobu.Util
 
-voiceChannelMembers :: BotC r => VoiceChannel -> P.Sem r (Maybe [Member])
-voiceChannelMembers voiceChannel = P.runNonDetMaybe do
-  let justEmpty = maybe empty pure
-      guildID = view #guildID voiceChannel
+voiceChannelMembers :: (BotC r, P.Error String :> r) => VoiceChannel -> P.Sem r [Member]
+voiceChannelMembers voiceChannel = do
+  let guildID = view #guildID voiceChannel
       memberFromUID = upgrade . (guildID,) . coerceSnowflake
-      memberFromVoiceState = justEmpty <=< memberFromUID . view #userID
-  guild <- justEmpty =<< upgrade guildID
-  mapM memberFromVoiceState (view #voiceStates guild)
+      memberFromVoiceState = P.note "Failed to get Member" <=< memberFromUID . view #userID
+  -- TODO: cache this somehow
+  res <- invoke $ GetGuild guildID
+  print res
+  guild <- P.fromEither (fmapL show res)
+  mapM memberFromVoiceState (guild ^. #voiceStates)
 
 runVcToTcInIO sem = do
   conn <- P.embed $ SQL.open "shinobu.db"
@@ -34,32 +37,37 @@ runVcToTcInIO sem = do
 
 data VCTOTC
 
-type VcToTc = P.Tagged VCTOTC (KeyStore (Snowflake VoiceChannel) (Snowflake TextChannel))
+callReaction :: ShinobuSem r
+callReaction = void
+  . runVcToTcInIO
+  $ do
+    react @'VoiceStateUpdateEvt
+      \(mBefore, after) -> void $ P.runNonDetMaybe do
+        print mBefore
+        print after
+        assertReady
+        print "Ready"
 
-vcToTc :: VcToTc :> r => Snowflake VoiceChannel -> P.Sem r (Maybe (Snowflake TextChannel))
-vcToTc = P.tag @VCTOTC . getK
+        afterID <- justZ (after ^. #channelID)
 
-callReaction :: VcToTc :> r => ShinobuSem r
-callReaction = void $
-  react @'VoiceStateUpdateEvt
-    \(mBefore, after) -> void $ P.runNonDetMaybe do
-      assertReady
+        -- make sure the user switched channels (or joined one)
+        whenJust mBefore \before -> do
+          whenJust (before ^. #channelID) \beforeID -> do
+            guard (beforeID /= afterID)
+        print "Switched channels"
 
-      afterID <- justZ (after ^. #channelID)
+        -- make sure the person joined an empty voice channel
+        vc <- justZ =<< upgrade afterID
+        print "Upgraded channel"
+        vcMembers <- voiceChannelMembers vc
+        print vcMembers
+        guard (length vcMembers == 1)
 
-      -- make sure the user switched channels (or joined one)
-      whenJust mBefore \before -> do
-        whenJust (before ^. #channelID) \beforeID -> do
-          guard (beforeID /= afterID)
+        -- send the reaction
+        print "Getting mapped VC..."
+        textChannel <- justZ =<< P.tag @VCTOTC (getK afterID)
+        print "Success!"
+        user <- justZ =<< upgrade (after ^. #userID)
+        tellInfo textChannel [i|#{mention user} started a call.|]
 
-      -- make sure the person joined an empty voice channel
-      vc <- justZ =<< upgrade afterID
-      vcMembers <- justZ =<< voiceChannelMembers vc
-      guard (length vcMembers == 1)
-
-      -- send the reaction
-      textChannel <- justZ =<< vcToTc afterID
-      user <- justZ =<< upgrade (after ^. #userID)
-      tellInfo textChannel [i|#{mention user} started a call.|]
-
-      setCooldown 5
+        setCooldown 5
