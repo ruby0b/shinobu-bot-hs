@@ -19,7 +19,6 @@ executable shinobu-bot
     Shinobu.Commands.Misc
     Shinobu.Commands.Shop
     Shinobu.DB
-    Shinobu.Effects.CachedIO
     Shinobu.Effects.Cooldown
     Shinobu.Effects.IndexStore
     Shinobu.Effects.KeyStore
@@ -64,7 +63,6 @@ executable shinobu-bot
 
   mixins:             base hiding (Prelude)
   default-extensions:
-    NoCUSKs
     NoMonomorphismRestriction
     NoStarIsType
     AllowAmbiguousTypes

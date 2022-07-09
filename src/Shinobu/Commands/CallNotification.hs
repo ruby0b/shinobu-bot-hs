@@ -8,10 +8,10 @@ import Database.SQLite.Simple.QQ.Interpolated
 import qualified Polysemy as P
 import qualified Polysemy.Error as P
 import qualified Polysemy.NonDet as P
-import qualified Polysemy.Tagged as P
 import Shinobu.DB ()
 import Shinobu.Effects.Cooldown
 import Shinobu.Effects.KeyStore
+import qualified Shinobu.Effects.KeyStore as Id
 import Shinobu.Types
 import Shinobu.Util
 
@@ -26,20 +26,17 @@ voiceChannelMembers voiceChannel = do
   guild <- P.fromEither (fmapL show res)
   mapM memberFromVoiceState (guild ^. #voiceStates)
 
-runVcToTcInIO sem = do
-  conn <- P.embed $ SQL.open "shinobu.db"
-  vals :: [(Snowflake VoiceChannel, Snowflake TextChannel)] <-
-    P.embed $
-      conn
-        & [iquery|SELECT * FROM voice_to_text|]
-  vcToTcMap <- newIORef $ M.fromList vals
-  runKeyStoreIORef vcToTcMap . P.untag @VCTOTC $ sem
-
-data VCTOTC
-
 callReaction :: ShinobuSem r
 callReaction = void
-  . runVcToTcInIO
+  . ( \sem -> do
+        conn <- P.embed $ SQL.open "shinobu.db"
+        vals :: [(Snowflake VoiceChannel, Snowflake TextChannel)] <-
+          P.embed $
+            conn
+              & [iquery|SELECT * FROM voice_to_text|]
+        vcToTcMap <- newIORef $ M.fromList vals
+        runKeyStoreIORef vcToTcMap sem
+    )
   $ do
     react @'VoiceStateUpdateEvt
       \(mBefore, after) -> void $ P.runNonDetMaybe do
@@ -65,7 +62,7 @@ callReaction = void
 
         -- send the reaction
         print "Getting mapped VC..."
-        textChannel <- justZ =<< P.tag @VCTOTC (getK afterID)
+        textChannel <- justZ =<< Id.lookup afterID
         print "Success!"
         user <- justZ =<< upgrade (after ^. #userID)
         tellInfo textChannel [i|#{mention user} started a call.|]

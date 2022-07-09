@@ -79,6 +79,14 @@ fmtCmd = codeline . ("=" <>)
 fst3 :: (a, b, c) -> a
 fst3 (x, _, _) = x
 
-maximumOr :: Ord p => p -> [p] -> p
-maximumOr defaultVal [] = defaultVal
-maximumOr _ xs = maximum xs
+maximumOr :: (Ord p, Foldable f) => p -> f p -> p
+maximumOr defaultVal xs
+  | null xs = defaultVal
+  | otherwise = maximum xs
+
+whenNothingRun :: Monad m => Maybe a -> m b -> m (Maybe a)
+whenNothingRun (Just a) _ = pure (Just a)
+whenNothingRun Nothing f = f >> pure Nothing
+
+defaultSafeSucc :: (Bounded a, Enum a, Eq a) => a -> Maybe a
+defaultSafeSucc v = if v /= maxBound then Just (succ v) else Nothing
