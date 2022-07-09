@@ -19,11 +19,25 @@
             (final: prev: {
               shinobu-bot = final.haskell-nix.project' rec {
                 src = ./.;
-                compiler-nix-name = "ghc8107";
+                compiler-nix-name = "ghc923";
                 shell = {
                   tools = {
                     cabal = { };
-                    haskell-language-server = { };
+                    haskell-language-server = {
+                      cabalProject = ''
+                        packages: ./
+                        index-state: 2022-07-01T00:00:00Z
+                        constraints:
+                          hyphenation +embed,
+                          hlint +ghc-lib,
+                          ghc-lib-parser-ex -auto,
+                          stylish-haskell +ghc-lib,
+                          haskell-language-server -haddockcomments
+                        allow-newer:
+                          hiedb:base,
+                          ekg-wai:time
+                      '';
+                    };
                   };
                   buildInputs = with pkgs; [
                     nixpkgs-fmt
