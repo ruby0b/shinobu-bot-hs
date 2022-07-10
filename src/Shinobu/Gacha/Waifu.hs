@@ -13,16 +13,13 @@ data Waifu = Waifu
   { char :: Character,
     rarity :: Rarity
   }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
 
 data OwnedWaifu = OwnedWaifu
   { waifu :: Waifu,
     owner :: GachaUser
   }
-  deriving (Show, Eq)
-
-makeFieldLabelsNoPrefix ''Waifu
-makeFieldLabelsNoPrefix ''OwnedWaifu
+  deriving (Show, Eq, Generic)
 
 instance HasKey OwnedWaifu where
   type Key OwnedWaifu = (Key GachaUser, Key Character)

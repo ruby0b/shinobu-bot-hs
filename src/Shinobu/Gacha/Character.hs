@@ -15,11 +15,7 @@ data Character = Character
     batch :: Batch,
     series :: Series
   }
-  deriving (Show, Eq)
-
-makeFieldLabelsNoPrefix ''Series
-makeFieldLabelsNoPrefix ''Batch
-makeFieldLabelsNoPrefix ''Character
+  deriving (Show, Eq, Generic)
 
 instance HasKey Character where
   type Key Character = Integer

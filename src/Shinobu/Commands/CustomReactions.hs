@@ -6,6 +6,7 @@ import qualified Data.Map.Strict as M
 import qualified Database.SQLite.Simple as SQL
 import Database.SQLite.Simple.QQ.Interpolated
 import qualified Shinobu.Effects.KeyStore as Id
+import Shinobu.KeyStoreCommands
 import Shinobu.Types
 import Shinobu.Util
 import Text.RE.TDFA
@@ -37,9 +38,11 @@ customReactions = void
           when isMatch $ void do
             tell msg response
 
-    help (const "Manage automatic responses")
+    let spec = KeyStoreSpec {groupName = "response", itemSingular = "automatic response", itemPlural = "automatic responses"}
+
+    help (const [i|Manage #{spec ^. #itemPlural}|])
       . requires' "Admin" isAdminCtx
-      . group "response"
+      . group (spec ^. #groupName)
       $ do
         help (const "Add a new automatic response")
           . command @'[Named "Regex to match" Text, Named "My response" Text] "add"
@@ -48,31 +51,10 @@ customReactions = void
             Id.insertNewKey (regex, response)
             tellSuccess ctx [i|Understood!\nI will now respond to the pattern #{codeline pattern_} by saying:\n#{quote response}|]
 
-        help (const "List all automatic responses")
-          . command @'[] "list"
-          $ \ctx -> void do
-            reactions <- Id.listKeyValuePairs
-            if null reactions
-              then tellInfo ctx [i|No automatic responses exist. Use #{fmtCmd "response add"} to add one.|]
-              else
-                tellInfo ctx $
-                  unlines $
-                    reactions <&> \(id_, (pattern_, response)) ->
-                      [i|#{id_}: #{codeline $ fromString $ reSource $ pattern_}\n#{quote response}|]
+        mkListCommand spec \id_ (pattern_, response) ->
+          [i|#{id_}: #{codeline $ fromString $ reSource $ pattern_}\n#{quote response}|]
 
-        help (const "Delete an automatic response")
-          . commandA @'[Named "id" Integer] "delete" ["remove", "rm"]
-          $ \ctx id_ -> void do
-            mReaction <- Id.delete id_
-            -- TODO obviously this also suffers from race conditions... (though it's not that harmful)
-            case mReaction of
-              Nothing -> tellError ctx [i|I couldn't find a response with that id. Try listing them with #{fmtCmd "response list"}|]
-              Just (pattern_, response) -> do
-                tellSuccess ctx $
-                  [i|Successfully removed the following reaction:\n#{codeline $ fromString $ reSource $ pattern_}\n#{quote response}|]
+        mkDeleteCommand @Integer spec \_id (pattern_, response) ->
+          [i|#{codeline $ fromString $ reSource $ pattern_}\n#{quote response}|]
 
-        help (const "Reload the automatic response database")
-          . command @'[] "reload"
-          $ \ctx -> void do
-            Id.reload
-            tellSuccess ctx "Successfully synchronized my response cache with the database."
+        mkReloadCommand spec

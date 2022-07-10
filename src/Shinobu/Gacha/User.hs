@@ -13,9 +13,7 @@ data GachaUser = GachaUser
     last_withdrawal :: Maybe Day,
     next_birthday :: Maybe Day
   }
-  deriving (Show, Eq)
-
-makeFieldLabelsNoPrefix ''GachaUser
+  deriving (Show, Eq, Generic)
 
 instance HasKey GachaUser where
   type Key GachaUser = Word64

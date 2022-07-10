@@ -1,10 +1,8 @@
 module Shinobu.Gacha.Economy where
 
 newtype Money = Money {amount :: Int}
-  deriving (Show)
+  deriving (Show, Generic)
   deriving newtype (Eq, Ord, Num)
-
-makeFieldLabelsNoPrefix ''Money
 
 currencySymbol :: Text
 currencySymbol = "🍩"

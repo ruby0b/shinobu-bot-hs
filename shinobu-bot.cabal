@@ -31,6 +31,7 @@ executable shinobu-bot
     Shinobu.Gacha.Rarity
     Shinobu.Gacha.User
     Shinobu.Gacha.Waifu
+    Shinobu.KeyStoreCommands
     Shinobu.Types
     Shinobu.Util
 
