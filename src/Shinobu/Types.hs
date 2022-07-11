@@ -10,6 +10,6 @@ import Shinobu.Effects.Cooldown (Cooldown)
 import Shinobu.Effects.UserError (UserError)
 import Shinobu.Gacha.DB (GachaStores)
 
-type ShinobuC r = (BotC r, DSLC FullContext r, GachaStores :>> r, '[RandomFu, P.Error String, Cooldown] :>> r)
+type ShinobuC r = (BotC r, DSLC FullContext r, GachaStores :>> r, '[RandomFu, P.Error String, P.Error UserError, Cooldown] :>> r)
 
 type ShinobuSem r = ShinobuC r => P.Sem r ()
