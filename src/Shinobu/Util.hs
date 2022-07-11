@@ -87,6 +87,3 @@ maximumOr defaultVal xs
 whenNothingRun :: Monad m => Maybe a -> m b -> m (Maybe a)
 whenNothingRun (Just a) _ = pure (Just a)
 whenNothingRun Nothing f = f >> pure Nothing
-
-defaultSafeSucc :: (Bounded a, Enum a, Eq a) => a -> Maybe a
-defaultSafeSucc v = if v /= maxBound then Just (succ v) else Nothing

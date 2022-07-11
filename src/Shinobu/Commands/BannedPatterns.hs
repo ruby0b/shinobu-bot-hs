@@ -44,7 +44,7 @@ bannedPatterns = void
       . requires' "Admin" isAdminCtx
       . group (spec ^. #groupName)
       $ do
-        help (const "Add a new banned pattern")
+        help (const [i|Add a new #{spec ^. #itemSingular}|])
           . command @'[Named "Regex to match" Text] "add"
           $ \ctx pattern_ -> void do
             regex <- compileRegex $ toString pattern_

@@ -1,8 +1,8 @@
 BEGIN TRANSACTION;
 CREATE TABLE IF NOT EXISTS "voice_to_text" (
+	"id"	INTEGER NOT NULL PRIMARY KEY,
 	"voice_id"	INTEGER NOT NULL,
-	"text_id"	INTEGER NOT NULL,
-	PRIMARY KEY("voice_id","text_id")
+	"text_id"	INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS "banned_patterns" (
 	"id" INTEGER NOT NULL PRIMARY KEY,

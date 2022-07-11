@@ -1,17 +1,17 @@
 module Shinobu.Commands.CallNotification where
 
 import Calamity
+import Calamity.Commands
 import Control.Error (fmapL, justZ)
 import qualified Data.Map.Strict as M
-import qualified Database.SQLite.Simple as SQL
 import Database.SQLite.Simple.QQ.Interpolated
 import qualified Polysemy as P
 import qualified Polysemy.Error as P
 import qualified Polysemy.NonDet as P
 import Shinobu.DB ()
 import Shinobu.Effects.Cooldown
-import Shinobu.Effects.KeyStore
 import qualified Shinobu.Effects.KeyStore as Id
+import Shinobu.KeyStoreCommands
 import Shinobu.Types
 import Shinobu.Util
 
@@ -26,17 +26,14 @@ voiceChannelMembers voiceChannel = do
   guild <- P.fromEither (fmapL show res)
   mapM memberFromVoiceState (guild ^. #voiceStates)
 
+-- TODO optimization: use Map Id (Map VC TC) instead of Map Id [(VC, TC)]
 callReaction :: ShinobuSem r
 callReaction = void
-  . ( \sem -> do
-        conn <- P.embed $ SQL.open "shinobu.db"
-        vals :: [(Snowflake VoiceChannel, Snowflake TextChannel)] <-
-          P.embed $
-            conn
-              & [iquery|SELECT * FROM voice_to_text|]
-        vcToTcMap <- newIORef $ M.fromList vals
-        runKeyStoreIORef vcToTcMap sem
-    )
+  . Id.runKeyStoreCachedDB
+    (M.fromList . map (\(id_, vc, tc) -> (id_, (vc, tc))) <.> [iquery|SELECT * FROM voice_to_text|])
+    (\id_ (vc, tc) -> [iexecute|INSERT INTO voice_to_text VALUES (${id_}, ${vc}, ${tc})|])
+    (\id_ -> [iexecute|DELETE FROM voice_to_text WHERE id=${id_}|])
+    [iexecute|DELETE FROM voice_to_text|]
   $ do
     react @'VoiceStateUpdateEvt
       \(mBefore, after) -> void $ P.runNonDetMaybe do
@@ -62,9 +59,32 @@ callReaction = void
 
         -- send the reaction
         print "Getting mapped VC..."
-        textChannel <- justZ =<< Id.lookup afterID
+        vcToTc <- map snd <$> Id.listKeyValuePairs
+        (_, textChannel) <- justZ . find ((== afterID) . fst) $ vcToTc
         print "Success!"
         user <- justZ =<< upgrade (after ^. #userID)
         tellInfo textChannel [i|#{mention user} started a call.|]
 
         setCooldown 5
+
+    let spec = KeyStoreSpec {groupName = "ring", itemSingular = "call notification", itemPlural = "call notifications"}
+
+    help (const [i|Manage #{spec ^. #itemPlural}|])
+      . requires' "Admin" isAdminCtx
+      . group (spec ^. #groupName)
+      $ do
+        help (const [i|Add a new #{spec ^. #itemSingular}|])
+          . command @'[Named "Voice Channel ID" (Snowflake VoiceChannel), Named "Text Channel ID" (Snowflake TextChannel)] "add"
+          $ \ctx vcId tcId -> void do
+            upgrade vcId >>= maybeThrow [i|Invalid Voice Channel: #{vcId}|]
+            upgrade tcId >>= maybeThrow [i|Invalid Text Channel: #{tcId}|]
+            Id.insertNewKey (vcId, tcId)
+            tellSuccess ctx [i|Understood!\nI will notify the channel #{mention tcId} whenever a call is started in #{mention vcId}|]
+
+        mkListCommand spec \id_ (vc, tc) ->
+          [i|#{id_}: 📞 #{mention vc} ➡ 🔔 #{mention tc}|]
+
+        mkDeleteCommand @Integer spec \_id (vc, tc) ->
+          [i|📞 #{mention vc} ➡ 🔔 #{mention tc}|]
+
+        mkReloadCommand spec

@@ -44,7 +44,7 @@ customReactions = void
       . requires' "Admin" isAdminCtx
       . group (spec ^. #groupName)
       $ do
-        help (const "Add a new automatic response")
+        help (const [i|Add a new #{spec ^. #itemSingular}|])
           . command @'[Named "Regex to match" Text, Named "My response" Text] "add"
           $ \ctx pattern_ response -> void do
             regex <- compileRegex $ toString pattern_

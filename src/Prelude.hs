@@ -8,6 +8,7 @@ module Prelude
     type (:>),
     type (:>>),
     type (++),
+    (<.>),
   )
 where
 
@@ -31,3 +32,8 @@ type family xs ++ ys where
   (x ': xs) ++ ys = x ': (xs ++ ys)
 
 infixr 5 ++
+
+(<.>) :: Functor f => (a -> b) -> (c -> f a) -> (c -> f b)
+(<.>) f g x = f <$> g x
+
+infixl 4 <.>
