@@ -82,9 +82,9 @@ callReaction = void
             tellSuccess ctx [i|Understood!\nI will notify the channel #{mention tcId} whenever a call is started in #{mention vcId}|]
 
         mkListCommand spec \id_ (vc, tc) ->
-          [i|#{id_}: 📞 #{mention vc} ➡ 🔔 #{mention tc}|]
+          [i|#{id_}: #{mention vc} 📢 #{mention tc}|]
 
         mkDeleteCommand @Integer spec \_id (vc, tc) ->
-          [i|📞 #{mention vc} ➡ 🔔 #{mention tc}|]
+          [i|#{mention vc} 📢 #{mention tc}|]
 
         mkReloadCommand spec
