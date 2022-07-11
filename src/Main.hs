@@ -23,6 +23,7 @@ import Shinobu.Commands.Shop
 import Shinobu.Effects.Cooldown
 import Shinobu.Gacha.DB
 import Shinobu.Util
+import Shinobu.Effects.UserError
 
 stringErrorToFail :: P.Fail :> r => P.Sem (P.Error String : r) a -> P.Sem r a
 stringErrorToFail err =
@@ -49,6 +50,7 @@ main = do
     . useConstantPrefix "="
     . useFullContext
     . runBotIO (BotToken token) allFlags
+    . runUserErrorTellEmbed
     $ addCommands do
       helpCommand
       miscCommands

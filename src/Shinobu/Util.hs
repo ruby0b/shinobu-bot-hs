@@ -33,9 +33,7 @@ handleFailByLogging m = do
     _ -> pure ()
 
 maybeThrow :: P.Error e :> r => e -> Maybe a -> P.Sem r a
-maybeThrow failMsg maybeX = case maybeX of
-  Just x -> pure x
-  Nothing -> P.throw failMsg
+maybeThrow failMsg = maybe (P.throw failMsg) return
 
 runAtomicStateNewTVarIO ::
   P.Embed IO :> r =>

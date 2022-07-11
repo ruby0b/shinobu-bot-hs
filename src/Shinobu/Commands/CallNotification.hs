@@ -11,6 +11,7 @@ import qualified Polysemy.NonDet as P
 import Shinobu.DB ()
 import Shinobu.Effects.Cooldown
 import qualified Shinobu.Effects.KeyStore as Id
+import Shinobu.Effects.UserError (UserError, maybeUserError)
 import Shinobu.KeyStoreCommands
 import Shinobu.Types
 import Shinobu.Util
@@ -27,7 +28,7 @@ voiceChannelMembers voiceChannel = do
   mapM memberFromVoiceState (guild ^. #voiceStates)
 
 -- TODO optimization: use Map Id (Map VC TC) instead of Map Id [(VC, TC)]
-callReaction :: ShinobuSem r
+callReaction :: P.Error UserError :> r => ShinobuSem r
 callReaction = void
   . Id.runKeyStoreCachedDB
     (M.fromList . map (\(id_, vc, tc) -> (id_, (vc, tc))) <.> [iquery|SELECT * FROM voice_to_text|])
@@ -76,8 +77,9 @@ callReaction = void
         help (const [i|Add a new #{spec ^. #itemSingular}|])
           . command @'[Named "Voice Channel ID" (Snowflake VoiceChannel), Named "Text Channel ID" (Snowflake TextChannel)] "add"
           $ \ctx vcId tcId -> void do
-            upgrade vcId >>= maybeThrow [i|Invalid Voice Channel: #{vcId}|]
-            upgrade tcId >>= maybeThrow [i|Invalid Text Channel: #{tcId}|]
+            -- TODO replace this with actual checks/upgrades
+            pure (Just vcId) >>= maybeUserError ctx [i|Invalid Voice Channel: #{vcId}|]
+            pure (Nothing) >>= maybeUserError ctx [i|Invalid Text Channel: #{tcId}|]
             Id.insertNewKey (vcId, tcId)
             tellSuccess ctx [i|Understood!\nI will notify the channel #{mention tcId} whenever a call is started in #{mention vcId}|]
 

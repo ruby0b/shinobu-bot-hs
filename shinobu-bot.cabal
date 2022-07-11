@@ -22,6 +22,7 @@ executable shinobu-bot
     Shinobu.Effects.Cooldown
     Shinobu.Effects.IndexStore
     Shinobu.Effects.KeyStore
+    Shinobu.Effects.UserError
     Shinobu.Gacha
     Shinobu.Gacha.Character
     Shinobu.Gacha.DB
