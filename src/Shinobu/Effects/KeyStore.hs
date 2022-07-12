@@ -36,7 +36,6 @@ data KeyStore k v :: P.Effect where
 
 P.makeSem ''KeyStore
 
--- | insertNewKey is partial if succ is partial for the key type
 runKeyStoreAsState ::
   forall k v r a.
   Ord k =>

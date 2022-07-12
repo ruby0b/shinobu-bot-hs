@@ -11,7 +11,7 @@ import qualified Polysemy.NonDet as P
 import Shinobu.DB ()
 import Shinobu.Effects.Cooldown
 import qualified Shinobu.Effects.KeyStore as Id
-import Shinobu.Effects.UserError (UserError, maybeUserError)
+import Shinobu.Effects.UserError
 import Shinobu.KeyStoreCommands
 import Shinobu.Types
 import Shinobu.Util
@@ -28,7 +28,7 @@ voiceChannelMembers voiceChannel = do
   mapM memberFromVoiceState (guild ^. #voiceStates)
 
 -- TODO optimization: use Map Id (Map VC TC) instead of Map Id [(VC, TC)]
-callReaction :: P.Error UserError :> r => ShinobuSem r
+callReaction :: ShinobuSem r
 callReaction = void
   . Id.runKeyStoreCachedDB
     (M.fromList . map (\(id_, vc, tc) -> (id_, (vc, tc))) <.> [iquery|SELECT * FROM voice_to_text|])
@@ -73,7 +73,7 @@ callReaction = void
     help (const [i|Manage #{spec ^. #itemPlural}|])
       . requires' "Admin" isAdminCtx
       . group (spec ^. #groupName)
-      $ do
+      $ runUserErrorTellEmbed do
         help (const [i|Add a new #{spec ^. #itemSingular}|])
           . command @'[Named "Voice Channel ID" (Snowflake VoiceChannel), Named "Text Channel ID" (Snowflake TextChannel)] "add"
           $ \ctx vcId tcId -> void do

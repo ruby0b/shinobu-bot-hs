@@ -7,7 +7,7 @@ import qualified Polysemy as P
 import Shinobu.Effects.IndexStore
 import Shinobu.Gacha
 import Shinobu.Types
-import Shinobu.Util
+import Shinobu.Effects.UserError
 
 handlePackBuyResult :: ForcedWaifuGivingResult -> Embed
 handlePackBuyResult = \case
@@ -30,9 +30,9 @@ packCmd :: ShinobuSem r
 packCmd = void $
   help (const "Buy a pack with the given name. List all currently available packs if given no")
     . command @'[Named "pack name" (Maybe Text)] "pack"
-    $ \ctx -> \case
+    $ \ctx -> runUserErrorTellEmbed . \case
       Just packName -> void do
-        pack <- searchPack packName >>= maybeThrow [i|There's no pack named #{packName}!|]
+        pack <- searchPack packName >>= maybeUserError ctx [i|There's no pack named #{packName}!|]
         user <- getOrCreateUser . fromSnowflake . view #id . view #user $ ctx
         embed <- handlePackBuyResult <$> buyPack pack user
         tell ctx embed
