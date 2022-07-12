@@ -108,6 +108,7 @@ runKeyStoreCachedIO (readIO, putIO, deleteIO, clearIO) sem = do
     Clear -> modifyMap_ . const $ clearIO $> M.empty
 
 runKeyStoreCachedDB ::
+  forall k v r a.
   (P.Embed IO :> r, Ord k) =>
   (SQL.Connection -> IO (Map k v)) ->
   (k -> v -> SQL.Connection -> IO ()) ->

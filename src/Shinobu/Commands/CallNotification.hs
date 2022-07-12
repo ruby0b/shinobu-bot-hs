@@ -30,7 +30,7 @@ voiceChannelMembers voiceChannel = do
 -- TODO optimization: use Map Id (Map VC TC) instead of Map Id [(VC, TC)]
 callReaction :: ShinobuSem r
 callReaction = void
-  . Id.runKeyStoreCachedDB
+  . Id.runKeyStoreCachedDB @Integer @(Snowflake VoiceChannel, Snowflake TextChannel)
     (M.fromList . map (\(id_, vc, tc) -> (id_, (vc, tc))) <.> [iquery|SELECT * FROM voice_to_text|])
     (\id_ (vc, tc) -> [iexecute|INSERT INTO voice_to_text VALUES (${id_}, ${vc}, ${tc})|])
     (\id_ -> [iexecute|DELETE FROM voice_to_text WHERE id=${id_}|])
@@ -73,13 +73,12 @@ callReaction = void
     help (const [i|Manage #{spec ^. #itemPlural}|])
       . requires' "Admin" isAdminCtx
       . group (spec ^. #groupName)
-      $ runUserErrorTellEmbed do
+      $ do
         help (const [i|Add a new #{spec ^. #itemSingular}|])
           . command @'[Named "Voice Channel ID" (Snowflake VoiceChannel), Named "Text Channel ID" (Snowflake TextChannel)] "add"
-          $ \ctx vcId tcId -> void do
-            -- TODO replace this with actual checks/upgrades
-            pure (Just vcId) >>= maybeUserError ctx [i|Invalid Voice Channel: #{vcId}|]
-            pure (Nothing) >>= maybeUserError ctx [i|Invalid Text Channel: #{tcId}|]
+          $ \ctx vcId tcId -> runUserErrorTellEmbed do
+            upgrade vcId >>= maybeUserError ctx [i|Invalid Voice Channel: #{vcId}|]
+            upgrade tcId >>= maybeUserError ctx [i|Invalid Text Channel: #{tcId}|]
             Id.insertNewKey (vcId, tcId)
             tellSuccess ctx [i|Understood!\nI will notify the channel #{mention tcId} whenever a call is started in #{mention vcId}|]
 
