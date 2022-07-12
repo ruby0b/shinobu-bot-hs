@@ -36,11 +36,7 @@ data KeyStore k v :: P.Effect where
 
 P.makeSem ''KeyStore
 
-runKeyStoreAsState ::
-  forall k v r a.
-  Ord k =>
-  P.Sem (KeyStore k v : r) a ->
-  P.Sem (P.State (M.Map k v) : r) a
+runKeyStoreAsState :: forall k v r a. Ord k => P.Sem (KeyStore k v : r) a -> P.Sem (P.State (M.Map k v) : r) a
 runKeyStoreAsState = P.reinterpret \case
   ListKeyValuePairs -> M.toList <$> P.get
   Lookup k -> M.lookup k <$> P.get
@@ -61,18 +57,10 @@ runKeyStoreAsState = P.reinterpret \case
   Clear -> P.put M.empty
   Reload -> return ()
 
-runKeyStorePurely ::
-  (Ord k) =>
-  M.Map k v ->
-  P.Sem (KeyStore k v : r) a ->
-  P.Sem r (M.Map k v, a)
+runKeyStorePurely :: (Ord k) => M.Map k v -> P.Sem (KeyStore k v : r) a -> P.Sem r (M.Map k v, a)
 runKeyStorePurely kvMap = P.runState kvMap . runKeyStoreAsState
 
-runKeyStoreIORef ::
-  (Ord k, P.Embed IO :> r) =>
-  IORef (M.Map k v) ->
-  P.Sem (KeyStore k v : r) a ->
-  P.Sem r a
+runKeyStoreIORef :: (Ord k, P.Embed IO :> r) => IORef (M.Map k v) -> P.Sem (KeyStore k v : r) a -> P.Sem r a
 runKeyStoreIORef ref = P.runStateIORef ref . runKeyStoreAsState
 
 -- | Doesn't require IO for reads to improve read speeds.
@@ -82,13 +70,10 @@ runKeyStoreIORef ref = P.runStateIORef ref . runKeyStoreAsState
 runKeyStoreCachedIO ::
   forall k v r a.
   (P.Embed IO :> r, Ord k) =>
-  IO (Map k v) ->
-  (k -> v -> IO ()) ->
-  (k -> IO ()) ->
-  IO () ->
+  (IO (Map k v), k -> v -> IO (), k -> IO (), IO ()) ->
   P.Sem (KeyStore k v : r) a ->
   P.Sem r a
-runKeyStoreCachedIO readIO putIO deleteIO clearIO sem = do
+runKeyStoreCachedIO (readIO, putIO, deleteIO, clearIO) sem = do
   -- TODO: look into strict MVar
   mvar <- P.embed $ newMVar =<< readIO
   let readMap :: P.Sem r (M.Map k v)
@@ -132,7 +117,8 @@ runKeyStoreCachedDB ::
   P.Sem r a
 runKeyStoreCachedDB initSQL putSQL deleteSQL clearSQL =
   runKeyStoreCachedIO
-    (SQL.open "shinobu.db" >>= initSQL)
-    (\k v -> SQL.open "shinobu.db" >>= putSQL k v)
-    (\k -> SQL.open "shinobu.db" >>= deleteSQL k)
-    (SQL.open "shinobu.db" >>= clearSQL)
+    ( SQL.open "shinobu.db" >>= initSQL,
+      \k v -> SQL.open "shinobu.db" >>= putSQL k v,
+      \k -> SQL.open "shinobu.db" >>= deleteSQL k,
+      SQL.open "shinobu.db" >>= clearSQL
+    )
