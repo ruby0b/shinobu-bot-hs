@@ -22,9 +22,9 @@ queryPatterns conn = do
 
 bannedPatterns :: ShinobuSem r
 bannedPatterns = void
-  . Id.runKeyStoreCachedDB
+  . Id.runKeyStoreAsDBCache
     queryPatterns
-    (\id_ pattern_ -> [iexecute|INSERT INTO banned_patterns VALUES (${id_}, ${reSource pattern_})|])
+    (\id_ pattern_ -> [iexecute|INSERT OR REPLACE INTO banned_patterns VALUES (${id_}, ${reSource pattern_})|])
     (\id_ -> [iexecute|DELETE FROM banned_patterns WHERE id=${id_}|])
     [iexecute|DELETE FROM banned_patterns|]
   $ do

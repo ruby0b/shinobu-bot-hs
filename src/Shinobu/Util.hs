@@ -7,12 +7,14 @@ import qualified Data.Colour as Colour
 import qualified Data.Colour.Names as Colour
 import Data.Flags ((.~.))
 import Data.Foldable (maximum)
+import Data.List.NonEmpty (groupBy)
 import qualified DiPolysemy as P
 import qualified Polysemy as P
 import qualified Polysemy.AtomicState as P
 import qualified Polysemy.Error as P
 import qualified Polysemy.Fail as P
 import Relude.Extra.Enum (safeToEnum)
+import System.Clock
 
 class Foldable f => Optional f where
   (//) :: f a -> a -> a
@@ -77,6 +79,13 @@ fmtCmd = codeline . ("=" <>)
 fst3 :: (a, b, c) -> a
 fst3 (x, _, _) = x
 
+shareFst :: NonEmpty (a, b, c) -> (a, NonEmpty (b, c))
+shareFst ts = (fst3 $ head ts,) $ (\(_, y, z) -> (y, z)) <$> ts
+
+-- | return value is sorted by the first tuple element in ascending order
+indexByFst :: Ord a => [(a, b, c)] -> [(a, NonEmpty (b, c))]
+indexByFst = map shareFst . groupBy ((==) `on` fst3) . sortOn fst3
+
 maximumOr :: (Ord p, Foldable f) => p -> f p -> p
 maximumOr defaultVal xs
   | null xs = defaultVal
@@ -85,3 +94,29 @@ maximumOr defaultVal xs
 whenNothingRun :: Monad m => Maybe a -> m b -> m (Maybe a)
 whenNothingRun (Just a) _ = pure (Just a)
 whenNothingRun Nothing f = f >> pure Nothing
+
+timeit :: (BotC r, Tellable c) => c -> P.Sem r a -> P.Sem r a
+timeit c io = do
+  t <- timeitBegin
+  !x <- io
+  timeitEnd c t
+  return x
+
+timeit' :: (BotC r, Tellable c, NFData a) => c -> P.Sem r a -> P.Sem r a
+timeit' c io = do
+  t <- timeitBegin
+  x <- force <$> io
+  timeitEnd c t
+  return x
+
+timeitBegin :: P.Embed IO :> r => P.Sem r TimeSpec
+timeitBegin = P.embed $ getTime Monotonic
+
+timeitEnd :: (BotC r, Tellable c) => c -> TimeSpec -> P.Sem r ()
+timeitEnd c t = void do
+  t' <- P.embed $ getTime Monotonic
+  let d = diffTimeSpec t t'
+      dnano = toNanoSecs d
+      dsec = dnano `div` 10 ^ 9
+      ddec = dnano - (dsec * 10 ^ 9)
+  tellInfo c [i|Time: #{dsec}.#{ddec} s|]

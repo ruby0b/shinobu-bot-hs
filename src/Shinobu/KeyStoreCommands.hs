@@ -59,7 +59,7 @@ mkDeleteCommand spec showItem = help (const [i|Delete an #{spec ^. #itemSingular
   . commandA @'[Named "id" kp] "delete" ["remove", "rm"]
   $ \ctx id_ -> void do
     Id.delete id_ >>= \case
-      Nothing ->
+      Nothing -> do
         tellError
           ctx
           [i|I couldn't find a #{spec ^. #itemSingular} with that id. Try listing them with #{fmtCmd (spec ^. #groupName <> " list")}|]

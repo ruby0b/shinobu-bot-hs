@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Shinobu.Commands.CallNotification where
 
 import Calamity
@@ -9,6 +11,7 @@ import qualified Polysemy as P
 import qualified Polysemy.Error as P
 import qualified Polysemy.NonDet as P
 import Shinobu.DB ()
+import qualified Shinobu.Effects.Cache as C
 import Shinobu.Effects.Cooldown
 import qualified Shinobu.Effects.KeyStore as Id
 import Shinobu.Effects.UserError
@@ -27,12 +30,17 @@ voiceChannelMembers voiceChannel = do
   guild <- P.fromEither (fmapL show res)
   mapM memberFromVoiceState (guild ^. #voiceStates)
 
--- TODO optimization: use Map Id (Map VC TC) instead of Map Id [(VC, TC)]
+type VcToTc = Map (Snowflake VoiceChannel) (NonEmpty (Integer, Snowflake TextChannel))
+
+instance Id.KeyStoreC VcToTc Integer (Snowflake VoiceChannel, Snowflake TextChannel) where
+  toKVList = concatMap (\(vc, xs) -> toList $ fmap (\(id_, tc) -> (id_, (vc, tc))) xs) . M.toList
+  lookupK id_ = snd <.> find ((== id_) . fst) . Id.toKVList
+
 callReaction :: ShinobuSem r
 callReaction = void
-  . Id.runKeyStoreCachedDB @Integer @(Snowflake VoiceChannel, Snowflake TextChannel)
-    (M.fromList . map (\(id_, vc, tc) -> (id_, (vc, tc))) <.> [iquery|SELECT * FROM voice_to_text|])
-    (\id_ (vc, tc) -> [iexecute|INSERT INTO voice_to_text VALUES (${id_}, ${vc}, ${tc})|])
+  . Id.runKeyStoreAsDBCache @VcToTc @Integer @(Snowflake VoiceChannel, Snowflake TextChannel)
+    (M.fromAscList . indexByFst . map (\(x, y, z) -> (y, x, z)) <.> [iquery|SELECT * FROM voice_to_text|])
+    (\id_ (vc, tc) -> [iexecute|INSERT OR REPLACE INTO voice_to_text VALUES (${id_}, ${vc}, ${tc})|])
     (\id_ -> [iexecute|DELETE FROM voice_to_text WHERE id=${id_}|])
     [iexecute|DELETE FROM voice_to_text|]
   $ do
@@ -60,11 +68,11 @@ callReaction = void
 
         -- send the reaction
         print "Getting mapped VC..."
-        vcToTc <- map snd <$> Id.listKeyValuePairs
-        (_, textChannel) <- justZ . find ((== afterID) . fst) $ vcToTc
+        textChannels <- justZ . M.lookup afterID =<< C.get
         print "Success!"
         user <- justZ =<< upgrade (after ^. #userID)
-        tellInfo textChannel [i|#{mention user} started a call.|]
+        for_ textChannels \(_, tc) ->
+          tellInfo tc [i|#{mention user} started a call.|]
 
         setCooldown 5
 

@@ -1,11 +1,11 @@
 module Shinobu.Effects.KeyStore where
 
 import Calamity
-import Control.Concurrent (modifyMVar, modifyMVar_)
 import qualified Data.Map.Strict as M
 import qualified Database.SQLite.Simple as SQL
 import qualified Polysemy as P
 import qualified Polysemy.State as P
+import qualified Shinobu.Effects.Cache as C
 import Shinobu.Util (maximumOr, whenNothingRun)
 
 class NewUnique a where
@@ -63,63 +63,53 @@ runKeyStorePurely kvMap = P.runState kvMap . runKeyStoreAsState
 runKeyStoreIORef :: (Ord k, P.Embed IO :> r) => IORef (M.Map k v) -> P.Sem (KeyStore k v : r) a -> P.Sem r a
 runKeyStoreIORef ref = P.runStateIORef ref . runKeyStoreAsState
 
+class KeyStoreC a k v where
+  toKVList :: a -> [(k, v)]
+  lookupK :: k -> a -> Maybe v
+
+instance Ord k => KeyStoreC (M.Map k v) k v where
+  toKVList = M.toList
+  lookupK = M.lookup
+
 -- | Doesn't require IO for reads to improve read speeds.
--- Uses an MVar to cache IO results and subsequent updates.
 -- 'reload' reads back from IO, overwriting the MVar.
--- /Assumption: The underlying IO structure is not modified externally./
-runKeyStoreCachedIO ::
-  forall k v r a.
-  (P.Embed IO :> r, Ord k) =>
-  (IO (Map k v), k -> v -> IO (), k -> IO (), IO ()) ->
+-- /Any action that modifies the map reloads the cache./
+keyStoreToIOCache ::
+  forall c k v r a.
+  (C.Cache IO c :> r, KeyStoreC c k v) =>
+  (k -> v -> IO (), k -> IO (), IO ()) ->
   P.Sem (KeyStore k v : r) a ->
   P.Sem r a
-runKeyStoreCachedIO (readIO, putIO, deleteIO, clearIO) sem = do
-  -- TODO: look into strict MVar
-  mvar <- P.embed $ newMVar =<< readIO
-  let readMap :: P.Sem r (M.Map k v)
-      readMap = P.embed $ readMVar mvar
-      modifyMap :: forall x. (Map k v -> IO (Map k v, x)) -> P.Sem r x
-      modifyMap = P.embed . modifyMVar mvar
-      modifyMap_ :: (Map k v -> IO (Map k v)) -> P.Sem r ()
-      modifyMap_ = P.embed . modifyMVar_ mvar
-
+keyStoreToIOCache (putIO, deleteIO, clearIO) sem =
   sem & P.interpret \case
-    ListKeyValuePairs -> M.toList <$> readMap
-    Lookup k -> M.lookup k <$> readMap
-    InsertOrLookup k v ->
-      modifyMap \m ->
-        return case M.lookup k m of
-          Just v' -> (m, Just v')
-          Nothing -> (M.insert k v m, Nothing)
-    InsertOrReplace k v ->
-      modifyMap_ \m -> do
-        putIO k v
-        return (M.insert k v m)
-    InsertNewKey v ->
-      modifyMap \m -> do
-        let k = newUnique . map fst . M.toList $ m
-        putIO k v
-        return (M.insert k v m, k)
-    Delete k ->
-      modifyMap \m -> do
-        deleteIO k
-        return (M.delete k m, M.lookup k m)
-    Reload -> modifyMap_ . const $ readIO
-    Clear -> modifyMap_ . const $ clearIO $> M.empty
+    ListKeyValuePairs -> toKVList <$> C.get
+    Lookup k -> lookupK k <$> C.get
+    InsertOrLookup k v -> C.modify \m -> do
+      lookupK k m & \case
+        Nothing -> putIO k v >> return Nothing
+        Just v' -> return (Just v')
+    InsertOrReplace k v -> C.put (putIO k v) (const ())
+    InsertNewKey v -> C.modify \m -> do
+      let k = newUnique . map fst . toKVList @_ @_ @v $ m
+      putIO k v
+      return k
+    Delete k -> C.modify \m -> lookupK k m <$ deleteIO k
+    Reload -> C.reload
+    Clear -> C.modify $ const clearIO
 
-runKeyStoreCachedDB ::
-  forall k v r a.
-  (P.Embed IO :> r, Ord k) =>
-  (SQL.Connection -> IO (Map k v)) ->
+runKeyStoreAsDBCache ::
+  forall c k v r a.
+  (P.Embed IO :> r, KeyStoreC c k v) =>
+  (SQL.Connection -> IO c) ->
   (k -> v -> SQL.Connection -> IO ()) ->
   (k -> SQL.Connection -> IO ()) ->
   (SQL.Connection -> IO ()) ->
-  P.Sem (KeyStore k v : r) a ->
+  P.Sem (KeyStore k v : C.Cache IO c : r) a ->
   P.Sem r a
-runKeyStoreCachedDB initSQL putSQL deleteSQL clearSQL =
-  runKeyStoreCachedIO
-    ( SQL.open "shinobu.db" >>= initSQL,
-      \k v -> SQL.open "shinobu.db" >>= putSQL k v,
-      \k -> SQL.open "shinobu.db" >>= deleteSQL k,
-      SQL.open "shinobu.db" >>= clearSQL
-    )
+runKeyStoreAsDBCache initSQL putSQL deleteSQL clearSQL =
+  C.runCacheDB initSQL
+    . keyStoreToIOCache
+      ( \k v -> SQL.open "shinobu.db" >>= putSQL k v,
+        \k -> SQL.open "shinobu.db" >>= deleteSQL k,
+        SQL.open "shinobu.db" >>= clearSQL
+      )

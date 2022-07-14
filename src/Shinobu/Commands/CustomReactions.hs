@@ -22,9 +22,9 @@ queryReactions conn = do
 
 customReactions :: ShinobuSem r
 customReactions = void
-  . Id.runKeyStoreCachedDB
+  . Id.runKeyStoreAsDBCache
     queryReactions
-    (\id_ (pattern_, response) -> [iexecute|INSERT INTO regex_reactions VALUES (${id_}, ${reSource pattern_}, ${response})|])
+    (\id_ (pattern_, response) -> [iexecute|INSERT OR REPLACE INTO regex_reactions VALUES (${id_}, ${reSource pattern_}, ${response})|])
     (\id_ -> [iexecute|DELETE FROM regex_reactions WHERE id=${id_}|])
     [iexecute|DELETE FROM regex_reactions|]
   $ do
