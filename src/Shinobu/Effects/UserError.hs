@@ -18,3 +18,9 @@ runUserErrorTellEmbed =
   P.runError >=> \case
     Left (UserError t msg) -> void $ tellError t msg
     Right _ -> return ()
+
+intoUserError :: (P.Error UserError :> r, Tellable t) => t -> P.Sem (P.Error String : r) c -> P.Sem r c
+intoUserError t =
+  P.runError >=> \case
+    Left e -> userError t (fromString e)
+    Right x -> return x

@@ -30,7 +30,7 @@ packCmd :: ShinobuSem r
 packCmd = void $
   help (const "Buy a pack with the given name. List all currently available packs if given no")
     . command @'[Named "pack name" (Maybe Text)] "pack"
-    $ \ctx -> runUserErrorTellEmbed . \case
+    $ \ctx -> runUserErrorTellEmbed . intoUserError ctx . \case
       Just packName -> void do
         pack <- searchPack packName >>= maybeUserError ctx [i|There's no pack named #{packName}!|]
         user <- getOrCreateUser . fromSnowflake . view #id . view #user $ ctx

@@ -11,8 +11,6 @@ import Data.Text (strip)
 import qualified Di
 import qualified DiPolysemy as P
 import qualified Polysemy as P
-import qualified Polysemy.Error as P
-import qualified Polysemy.Fail as P
 import qualified Polysemy.RandomFu as P
 import Shinobu.Commands.BannedPatterns
 import Shinobu.Commands.CallNotification
@@ -23,12 +21,6 @@ import Shinobu.Commands.Shop
 import Shinobu.Effects.Cooldown
 import Shinobu.Gacha.DB
 import Shinobu.Util
-
-stringErrorToFail :: P.Fail :> r => P.Sem (P.Error String : r) a -> P.Sem r a
-stringErrorToFail err =
-  P.runError err >>= \case
-    Left e -> fail e
-    Right v -> pure v
 
 main :: IO ()
 main = do
@@ -43,7 +35,6 @@ main = do
     . runCooldownInIO
     . runGachaStoresIO
     . handleFailByLogging
-    . stringErrorToFail
     . runCacheInMemory
     . runMetricsNoop
     . useConstantPrefix "="

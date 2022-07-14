@@ -120,3 +120,9 @@ timeitEnd c t = void do
       dsec = dnano `div` 10 ^ 9
       ddec = dnano - (dsec * 10 ^ 9)
   tellInfo c [i|Time: #{dsec}.#{ddec} s|]
+
+stringErrorToFail :: P.Fail :> r => P.Sem (P.Error String : r) a -> P.Sem r a
+stringErrorToFail =
+  P.runError >=> \case
+    Left e -> fail e
+    Right v -> return v

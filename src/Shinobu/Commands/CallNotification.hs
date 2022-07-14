@@ -45,36 +45,37 @@ callReaction = void
     [iexecute|DELETE FROM voice_to_text|]
   $ do
     react @'VoiceStateUpdateEvt
-      \(mBefore, after) -> void $ P.runNonDetMaybe do
-        print mBefore
-        print after
-        assertReady
-        print "Ready"
+      \(mBefore, after) -> void $
+        P.runNonDetMaybe $ stringErrorToFail do
+          print mBefore
+          print after
+          assertReady
+          print "Ready"
 
-        afterID <- justZ (after ^. #channelID)
+          afterID <- justZ (after ^. #channelID)
 
-        -- make sure the user switched channels (or joined one)
-        whenJust mBefore \before -> do
-          whenJust (before ^. #channelID) \beforeID -> do
-            guard (beforeID /= afterID)
-        print "Switched channels"
+          -- make sure the user switched channels (or joined one)
+          whenJust mBefore \before -> do
+            whenJust (before ^. #channelID) \beforeID -> do
+              guard (beforeID /= afterID)
+          print "Switched channels"
 
-        -- make sure the person joined an empty voice channel
-        vc <- justZ =<< upgrade afterID
-        print "Upgraded channel"
-        vcMembers <- voiceChannelMembers vc
-        print vcMembers
-        guard (length vcMembers == 1)
+          -- make sure the person joined an empty voice channel
+          vc <- justZ =<< upgrade afterID
+          print "Upgraded channel"
+          vcMembers <- voiceChannelMembers vc
+          print vcMembers
+          guard (length vcMembers == 1)
 
-        -- send the reaction
-        print "Getting mapped VC..."
-        textChannels <- justZ . M.lookup afterID =<< C.get
-        print "Success!"
-        user <- justZ =<< upgrade (after ^. #userID)
-        for_ textChannels \(_, tc) ->
-          tellInfo tc [i|#{mention user} started a call.|]
+          -- send the reaction
+          print "Getting mapped VC..."
+          textChannels <- justZ . M.lookup afterID =<< C.get
+          print "Success!"
+          user <- justZ =<< upgrade (after ^. #userID)
+          for_ textChannels \(_, tc) ->
+            tellInfo tc [i|#{mention user} started a call.|]
 
-        setCooldown 5
+          setCooldown 5
 
     let spec = KeyStoreSpec {groupName = "ring", itemSingular = "call notification", itemPlural = "call notifications"}
 
