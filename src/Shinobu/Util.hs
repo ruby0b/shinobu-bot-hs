@@ -8,6 +8,7 @@ import qualified Data.Colour.Names as Colour
 import Data.Flags ((.~.))
 import Data.Foldable (maximum)
 import Data.List.NonEmpty (groupBy)
+import qualified Data.Text.Encoding as T
 import qualified DiPolysemy as P
 import qualified Polysemy as P
 import qualified Polysemy.AtomicState as P
@@ -29,11 +30,10 @@ instance Optional (Either e)
 instance Optional []
 
 handleFailByLogging :: LogEff :> r => P.Sem (P.Fail : r) a -> P.Sem r ()
-handleFailByLogging m = do
-  r <- P.runFail m
-  case r of
+handleFailByLogging =
+  P.runFail >=> \case
     Left e -> P.error (fromString e)
-    _ -> pure ()
+    _ -> return ()
 
 maybeThrow :: P.Error e :> r => e -> Maybe a -> P.Sem r a
 maybeThrow failMsg = maybe (P.throw failMsg) return
@@ -133,3 +133,13 @@ stringErrorToFail =
 
 runSyncInIO :: [P.Final IO, P.Embed IO] :>> r => P.Sem (P.Sync d : P.Race : r) a -> P.Sem r a
 runSyncInIO = P.interpretRace . P.interpretSync
+
+fromRightM :: Applicative f => (a -> f b) -> Either a b -> f b
+fromRightM f (Left x) = f x
+fromRightM _ (Right y) = pure y
+
+readFileTextP :: [P.Embed IO, P.Error String] :>> r => String -> P.Sem r Text
+readFileTextP fp =
+  fromRightM (P.throw . (("Error while decoding " <> fp) <>) . show)
+    . T.decodeUtf8'
+    =<< readFileBS fp

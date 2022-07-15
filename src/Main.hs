@@ -8,6 +8,7 @@ import Calamity.Metrics.Noop
 import Data.Flags
 import Data.MonoTraversable (MonoFoldable (onull))
 import Data.Text (strip)
+import qualified Data.Text.IO as T
 import qualified Di
 import qualified DiPolysemy as P
 import qualified Polysemy as P
@@ -27,9 +28,9 @@ import Shinobu.Util
 
 main :: IO ()
 main = do
-  token <- strip <$> readFileText "./TOKEN"
+  token <- strip <$> T.readFile "./TOKEN"
   when (onull token) $
-    fail "Put your bot token into ./TOKEN"
+    die "Error: Put your bot token into ./TOKEN"
   Di.new \di -> void
     . P.runFinal
     . P.embedToFinal
@@ -37,8 +38,6 @@ main = do
     . P.runRandomIO
     . P.resourceToIOFinal
     . P.interpretMaskFinal
-    . P.interpretRace
-    . P.interpretScopedSync
     . DB.runSqliteSimple "shinobu.db"
     . runCooldownInIO
     . runGachaStoresIO
