@@ -4,8 +4,11 @@ import Calamity
 import qualified Data.Map.Strict as M
 import qualified Database.SQLite.Simple as SQL
 import qualified Polysemy as P
+import qualified Polysemy.Conc as P
+import qualified Polysemy.Resource as P
 import qualified Polysemy.State as P
 import qualified Shinobu.Effects.Cache as C
+import qualified Shinobu.Effects.DB as DB
 import Shinobu.Util (maximumOr, whenNothingRun)
 
 class NewUnique a where
@@ -72,15 +75,15 @@ instance Ord k => KeyStoreC (M.Map k v) k v where
   lookupK = M.lookup
 
 -- | Doesn't require IO for reads to improve read speeds.
--- 'reload' reads back from IO, overwriting the MVar.
+-- 'reload' reads back from IO, overwriting the cache.
 -- /Any action that modifies the map reloads the cache./
-keyStoreToIOCache ::
-  forall c k v r a.
-  (C.Cache IO c :> r, KeyStoreC c k v) =>
-  (k -> v -> IO (), k -> IO (), IO ()) ->
+keyStoreToCache ::
+  forall c k v m r a.
+  (C.Cache m c :> r, KeyStoreC c k v, Monad m) =>
+  (k -> v -> m (), k -> m (), m ()) ->
   P.Sem (KeyStore k v : r) a ->
   P.Sem r a
-keyStoreToIOCache (putIO, deleteIO, clearIO) sem =
+keyStoreToCache (putIO, deleteIO, clearIO) sem =
   sem & P.interpret \case
     ListKeyValuePairs -> toKVList <$> C.get
     Lookup k -> lookupK k <$> C.get
@@ -98,18 +101,18 @@ keyStoreToIOCache (putIO, deleteIO, clearIO) sem =
     Clear -> C.modify $ const clearIO
 
 runKeyStoreAsDBCache ::
-  forall c k v r a.
-  (P.Embed IO :> r, KeyStoreC c k v) =>
+  forall c k v a res1 r.
+  ([DB.SQLite, P.Sync c, P.Mask res1, P.Resource] :>> r, KeyStoreC c k v) =>
   (SQL.Connection -> IO c) ->
   (k -> v -> SQL.Connection -> IO ()) ->
   (k -> SQL.Connection -> IO ()) ->
   (SQL.Connection -> IO ()) ->
-  P.Sem (KeyStore k v : C.Cache IO c : r) a ->
+  P.Sem (KeyStore k v : C.Cache (P.Sem r) c : r) a ->
   P.Sem r a
 runKeyStoreAsDBCache initSQL putSQL deleteSQL clearSQL =
   C.runCacheDB initSQL
-    . keyStoreToIOCache
-      ( \k v -> SQL.open "shinobu.db" >>= putSQL k v,
-        \k -> SQL.open "shinobu.db" >>= deleteSQL k,
-        SQL.open "shinobu.db" >>= clearSQL
+    . keyStoreToCache
+      ( \k v -> DB.run $ putSQL k v,
+        DB.run . deleteSQL,
+        DB.run clearSQL
       )

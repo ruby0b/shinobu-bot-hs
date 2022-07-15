@@ -22,6 +22,7 @@ queryReactions conn = do
 
 customReactions :: ShinobuSem r
 customReactions = void
+  . runSyncInIO
   . Id.runKeyStoreAsDBCache
     queryReactions
     (\id_ (pattern_, response) -> [iexecute|INSERT OR REPLACE INTO regex_reactions VALUES (${id_}, ${reSource pattern_}, ${response})|])

@@ -1,9 +1,11 @@
 module Shinobu.Effects.Cache where
 
-import Control.Concurrent (modifyMVar, modifyMVar_)
-import Control.Exception (mask, onException)
 import qualified Database.SQLite.Simple as SQL
 import qualified Polysemy as P
+import qualified Polysemy.Conc as P
+import qualified Polysemy.Conc.Sync as P
+import qualified Polysemy.Resource as P
+import qualified Shinobu.Effects.DB as DB
 
 data Cache m v :: P.Effect where
   -- | get the cached value
@@ -17,28 +19,35 @@ data Cache m v :: P.Effect where
 
 P.makeSem ''Cache
 
-runCacheMVar :: (P.Embed IO :> r) => IO v -> P.Sem (Cache IO v : r) b -> P.Sem r b
-runCacheMVar reloadIO sem = do
-  mvar <- P.embed $ newMVar =<< reloadIO
+runCacheSync ::
+  forall a v res r.
+  [P.Sync v, P.Mask res, P.Resource] :>> r =>
+  P.Sem r v ->
+  P.Sem (Cache (P.Sem r) v : r) a ->
+  P.Sem r a
+runCacheSync reloadIO sem = do
+  P.putBlock =<< reloadIO
   sem & P.interpret \case
-    Get -> P.embed $ readMVar mvar
-    Modify f -> P.embed $
-      modifyMVar mvar $
-        const $
-          mask $ \restore -> do
-            a <- reloadIO
-            r <- restore (f a) `onException` reloadIO
-            a' <- reloadIO
-            return (a', r)
-    Put m f -> P.embed $
-      modifyMVar mvar $
-        const $
-          mask $ \restore -> do
-            restore m `onException` reloadIO
-            a <- reloadIO
-            return (a, f a)
-    Reload -> P.embed $ modifyMVar_ mvar $ const reloadIO
+    Get -> P.block
+    Modify f -> P.modify $
+      const $
+        P.mask @res do
+          a <- P.raise reloadIO
+          r <- P.restore (P.raise (f a)) `P.onException` P.raise reloadIO
+          a' <- P.raise reloadIO
+          return (a', r)
+    Put m f -> P.modify $
+      const $
+        P.mask do
+          P.restore (P.raise m) `P.onException` P.raise reloadIO
+          a <- P.raise reloadIO
+          return (a, f a)
+    Reload -> P.modify_ $ const reloadIO
 
-runCacheDB :: forall v r b. (P.Embed IO :> r) => (SQL.Connection -> IO v) -> P.Sem (Cache IO v : r) b -> P.Sem r b
-runCacheDB fetchSQL = do
-  runCacheMVar (SQL.open "shinobu.db" >>= fetchSQL)
+runCacheDB ::
+  forall a v res r.
+  [DB.SQLite, P.Sync v, P.Mask res, P.Resource] :>> r =>
+  (SQL.Connection -> IO v) ->
+  P.Sem (Cache (P.Sem r) v : r) a ->
+  P.Sem r a
+runCacheDB = runCacheSync . DB.run

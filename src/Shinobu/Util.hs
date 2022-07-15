@@ -11,6 +11,7 @@ import Data.List.NonEmpty (groupBy)
 import qualified DiPolysemy as P
 import qualified Polysemy as P
 import qualified Polysemy.AtomicState as P
+import qualified Polysemy.Conc as P
 import qualified Polysemy.Error as P
 import qualified Polysemy.Fail as P
 import Relude.Extra.Enum (safeToEnum)
@@ -126,3 +127,6 @@ stringErrorToFail =
   P.runError >=> \case
     Left e -> fail e
     Right v -> return v
+
+runSyncInIO :: [P.Final IO, P.Embed IO] :>> r => P.Sem (P.Sync d : P.Race : r) a -> P.Sem r a
+runSyncInIO = P.interpretRace . P.interpretSync

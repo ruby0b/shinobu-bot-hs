@@ -38,6 +38,7 @@ instance Id.KeyStoreC VcToTc Integer (Snowflake VoiceChannel, Snowflake TextChan
 
 callReaction :: ShinobuSem r
 callReaction = void
+  . runSyncInIO
   . Id.runKeyStoreAsDBCache @VcToTc @Integer @(Snowflake VoiceChannel, Snowflake TextChannel)
     (M.fromAscList . indexByFst . map (\(x, y, z) -> (y, x, z)) <.> [iquery|SELECT * FROM voice_to_text|])
     (\id_ (vc, tc) -> [iexecute|INSERT OR REPLACE INTO voice_to_text VALUES (${id_}, ${vc}, ${tc})|])

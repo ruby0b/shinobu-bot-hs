@@ -22,6 +22,7 @@ queryPatterns conn = do
 
 bannedPatterns :: ShinobuSem r
 bannedPatterns = void
+  . runSyncInIO
   . Id.runKeyStoreAsDBCache
     queryPatterns
     (\id_ pattern_ -> [iexecute|INSERT OR REPLACE INTO banned_patterns VALUES (${id_}, ${reSource pattern_})|])

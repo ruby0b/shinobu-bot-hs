@@ -11,7 +11,9 @@ import Data.Text (strip)
 import qualified Di
 import qualified DiPolysemy as P
 import qualified Polysemy as P
+import qualified Polysemy.Conc as P
 import qualified Polysemy.RandomFu as P
+import qualified Polysemy.Resource as P
 import Shinobu.Commands.BannedPatterns
 import Shinobu.Commands.CallNotification
 import Shinobu.Commands.CustomReactions
@@ -19,6 +21,7 @@ import Shinobu.Commands.ErrorHandling
 import Shinobu.Commands.Misc
 import Shinobu.Commands.Shop
 import Shinobu.Effects.Cooldown
+import qualified Shinobu.Effects.DB as DB
 import Shinobu.Gacha.DB
 import Shinobu.Util
 
@@ -32,6 +35,11 @@ main = do
     . P.embedToFinal
     . P.runDiToIO di
     . P.runRandomIO
+    . P.resourceToIOFinal
+    . P.interpretMaskFinal
+    . P.interpretRace
+    . P.interpretScopedSync
+    . DB.runSqliteSimple "shinobu.db"
     . runCooldownInIO
     . runGachaStoresIO
     . handleFailByLogging

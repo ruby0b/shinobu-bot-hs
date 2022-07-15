@@ -21,6 +21,7 @@ executable shinobu-bot
     Shinobu.DB
     Shinobu.Effects.Cache
     Shinobu.Effects.Cooldown
+    Shinobu.Effects.DB
     Shinobu.Effects.IndexStore
     Shinobu.Effects.KeyStore
     Shinobu.Effects.UserError
@@ -51,6 +52,7 @@ executable shinobu-bot
     , mono-traversable           >=1.0.15.3
     , optics                     >=0.4.2
     , polysemy                   >=1.7
+    , polysemy-conc              >=0.9.0.0
     , polysemy-plugin            >=0.4.3.1
     , polysemy-RandomFu          >=0.5.0.0
     , random                     >=1.2.1.1
