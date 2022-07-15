@@ -96,6 +96,12 @@ whenNothingRun :: Monad m => Maybe a -> m b -> m (Maybe a)
 whenNothingRun (Just a) _ = pure (Just a)
 whenNothingRun Nothing f = f >> pure Nothing
 
+fmtNanosecondsAsSeconds :: Integer -> Text
+fmtNanosecondsAsSeconds nano =
+  let secs = nano `div` 10 ^ 9
+      subsecs = nano - (secs * 10 ^ 9)
+   in [i|Time: #{secs}.#{subsecs} s|]
+
 timeit :: (BotC r, Tellable c) => c -> P.Sem r a -> P.Sem r a
 timeit c io = do
   t <- timeitBegin
@@ -116,11 +122,8 @@ timeitBegin = P.embed $ getTime Monotonic
 timeitEnd :: (BotC r, Tellable c) => c -> TimeSpec -> P.Sem r ()
 timeitEnd c t = void do
   t' <- P.embed $ getTime Monotonic
-  let d = diffTimeSpec t t'
-      dnano = toNanoSecs d
-      dsec = dnano `div` 10 ^ 9
-      ddec = dnano - (dsec * 10 ^ 9)
-  tellInfo c [i|Time: #{dsec}.#{ddec} s|]
+  let dnano = toNanoSecs $ diffTimeSpec t t'
+  tellInfo c $ fmtNanosecondsAsSeconds dnano
 
 stringErrorToFail :: P.Fail :> r => P.Sem (P.Error String : r) a -> P.Sem r a
 stringErrorToFail =
