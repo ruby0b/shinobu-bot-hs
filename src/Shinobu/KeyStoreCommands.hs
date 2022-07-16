@@ -27,7 +27,7 @@ data KeyStoreSpec = KeyStoreSpec
 --   (k -> v -> Text) ->
 --   P.Sem r (Command FullContext)
 -- mkAddCommand spec f showItem =
---   help (const [i|Add a new automatic response|])
+--   help_ [i|Add a new automatic response|]
 --     . command @params "add"
 --     $ \ctx ->
 --       f ctx >>> \fRet -> void do
@@ -41,7 +41,7 @@ mkListCommand ::
   (k -> v -> Text) ->
   P.Sem r (Command FullContext)
 mkListCommand spec showItem =
-  help (const [i|List all #{spec ^. #itemPlural}|])
+  help_ [i|List all #{spec ^. #itemPlural}|]
     . command @'[] "list"
     $ \ctx -> void do
       items <- Id.listKeyValuePairs
@@ -55,7 +55,7 @@ mkDeleteCommand ::
   KeyStoreSpec ->
   (k -> v -> Text) ->
   P.Sem r (Command FullContext)
-mkDeleteCommand spec showItem = help (const [i|Delete an #{spec ^. #itemSingular}|])
+mkDeleteCommand spec showItem = help_ [i|Delete an #{spec ^. #itemSingular}|]
   . commandA @'[Named "id" kp] "delete" ["remove", "rm"]
   $ \ctx id_ -> void do
     Id.delete id_ >>= \case
@@ -73,7 +73,7 @@ mkReloadCommand ::
   KeyStoreSpec ->
   P.Sem r (Command FullContext)
 mkReloadCommand spec =
-  help (const [i|Reload the #{spec ^. #itemSingular} database|])
+  help_ [i|Reload the #{spec ^. #itemSingular} database|]
     . command @'[] "reload"
     $ \ctx -> void do
       Id.reload

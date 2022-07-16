@@ -41,11 +41,11 @@ customReactions = void
 
     let spec = KeyStoreSpec {groupName = "response", itemSingular = "automatic response", itemPlural = "automatic responses"}
 
-    help (const [i|Manage #{spec ^. #itemPlural}|])
+    help_ [i|Manage #{spec ^. #itemPlural}|]
       . requires' "Admin" isAdminCtx
       . group (spec ^. #groupName)
       $ do
-        help (const [i|Add a new #{spec ^. #itemSingular}|])
+        help_ [i|Add a new #{spec ^. #itemSingular}|]
           . command @'[Named "Regex to match" Text, Named "My response" Text] "add"
           $ \ctx pattern_ response -> void do
             regex <- compileRegex $ toString pattern_

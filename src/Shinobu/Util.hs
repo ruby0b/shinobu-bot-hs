@@ -1,6 +1,7 @@
 module Shinobu.Util where
 
 import Calamity
+import Calamity.Commands (help)
 import Calamity.Commands.Context (FullContext)
 import Calamity.Types.LogEff (LogEff)
 import qualified Data.Colour as Colour
@@ -15,6 +16,7 @@ import qualified Polysemy.AtomicState as P
 import qualified Polysemy.Conc as P
 import qualified Polysemy.Error as P
 import qualified Polysemy.Fail as P
+import qualified Polysemy.Reader as P
 import Relude.Extra.Enum (safeToEnum)
 import System.Clock
 
@@ -82,6 +84,9 @@ isAdminCtx ctx = do
           then Nothing
           else Just "You have to be an administrator to use this command."
     _ -> pure $ Just "You can't use this command outside of a server."
+
+help_ :: P.Reader (c -> Text) :> r => Text -> P.Sem r a -> P.Sem r a
+help_ = help . const
 
 fmtCmd :: Text -> Text
 fmtCmd = codeline . ("=" <>)

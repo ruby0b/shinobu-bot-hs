@@ -1,14 +1,14 @@
 module Shinobu.Commands.Shop where
 
 import Calamity
-import CalamityCommands (Named, command, help)
+import CalamityCommands (Named, command)
 import Data.Sequences (toLower)
 import qualified Polysemy as P
 import Shinobu.Effects.IndexStore
 import Shinobu.Effects.UserError
 import Shinobu.Gacha
 import Shinobu.Types
-import Shinobu.Util (maybeThrow)
+import Shinobu.Util
 
 handlePackBuyResult :: ForcedWaifuGivingResult -> Embed
 handlePackBuyResult = \case
@@ -29,7 +29,7 @@ searchPack name = listI <&> find \pack -> toLower (pack ^. #name) == toLower nam
 
 packCmd :: ShinobuSem r
 packCmd = void $
-  help (const "Buy a pack with the given name. List all currently available packs if given no")
+  help_ "Buy a pack with the given name. List all currently available packs if given no"
     . command @'[Named "pack name" (Maybe Text)] "pack"
     $ \ctx ->
       runUserErrorTellEmbed ctx . \case

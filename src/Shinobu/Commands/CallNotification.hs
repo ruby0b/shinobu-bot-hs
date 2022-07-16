@@ -80,11 +80,11 @@ callReaction = void
 
     let spec = KeyStoreSpec {groupName = "ring", itemSingular = "call notification", itemPlural = "call notifications"}
 
-    help (const [i|Manage #{spec ^. #itemPlural}|])
+    help_ [i|Manage #{spec ^. #itemPlural}|]
       . requires' "Admin" isAdminCtx
       . group (spec ^. #groupName)
       $ do
-        help (const [i|Add a new #{spec ^. #itemSingular}|])
+        help_ [i|Add a new #{spec ^. #itemSingular}|]
           . command @'[Named "Voice Channel ID" (Snowflake VoiceChannel), Named "Text Channel ID" (Snowflake TextChannel)] "add"
           $ \ctx vcId tcId -> runUserErrorTellEmbed ctx do
             upgrade vcId >>= maybeThrow [i|Invalid Voice Channel: #{vcId}|]

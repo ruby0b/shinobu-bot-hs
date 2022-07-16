@@ -41,11 +41,11 @@ bannedPatterns = void
 
     let spec = KeyStoreSpec {groupName = "banned", itemSingular = "banned regex pattern", itemPlural = "banned regex patterns"}
 
-    help (const [i|Manage #{spec ^. #itemPlural}|])
+    help_ [i|Manage #{spec ^. #itemPlural}|]
       . requires' "Admin" isAdminCtx
       . group (spec ^. #groupName)
       $ do
-        help (const [i|Add a new #{spec ^. #itemSingular}|])
+        help_ [i|Add a new #{spec ^. #itemSingular}|]
           . command @'[Named "Regex to match" Text] "add"
           $ \ctx pattern_ -> void do
             regex <- compileRegex $ toString pattern_
