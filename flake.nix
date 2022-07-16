@@ -19,18 +19,18 @@
             (final: prev: {
               shinobu-bot = final.haskell-nix.project' rec {
                 src = ./.;
-                compiler-nix-name = "ghc923";  # got a segfault with ghc8107 ?!
-                # HLS doesn't work with ghc 9
-                # shell = {
-                #   tools = {
-                #     cabal = { };
-                #     # haskell-language-server = { }; 
-                #   };
-                #   buildInputs = with pkgs; [
-                #     nixpkgs-fmt
-                #     haskellPackages.cabal-fmt
-                #   ];
-                # };
+                compiler-nix-name = "ghc923"; # got a segfault with ghc8107 ?!
+                shell = {
+                  tools = {
+                    cabal = { };
+                    # HLS doesn't work with ghc 9
+                    # haskell-language-server = { }; 
+                  };
+                  buildInputs = with pkgs; [
+                    nixpkgs-fmt
+                    haskellPackages.cabal-fmt
+                  ];
+                };
               };
             })
           ];
