@@ -35,8 +35,17 @@ handleFailByLogging =
     Left e -> P.error (fromString e)
     _ -> return ()
 
-maybeThrow :: P.Error e :> r => e -> Maybe a -> P.Sem r a
-maybeThrow failMsg = maybe (P.throw failMsg) return
+fromRightM :: Applicative f => (a -> f b) -> Either a b -> f b
+fromRightM = flip either pure
+
+fromJustM :: Applicative f => f a -> Maybe a -> f a
+fromJustM = flip maybe pure
+
+maybeThrow :: forall e a r. P.Error e :> r => e -> Maybe a -> P.Sem r a
+maybeThrow = fromJustM . P.throw
+
+leftThrow :: forall e a b r. P.Error e :> r => (a -> e) -> Either a b -> P.Sem r b
+leftThrow leftToErr = fromRightM (P.throw . leftToErr)
 
 runAtomicStateNewTVarIO ::
   P.Embed IO :> r =>
@@ -133,10 +142,6 @@ stringErrorToFail =
 
 runSyncInIO :: [P.Final IO, P.Embed IO] :>> r => P.Sem (P.Sync d : P.Race : r) a -> P.Sem r a
 runSyncInIO = P.interpretRace . P.interpretSync
-
-fromRightM :: Applicative f => (a -> f b) -> Either a b -> f b
-fromRightM f (Left x) = f x
-fromRightM _ (Right y) = pure y
 
 readFileTextP :: [P.Embed IO, P.Error String] :>> r => String -> P.Sem r Text
 readFileTextP fp =

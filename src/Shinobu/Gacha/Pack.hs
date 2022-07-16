@@ -4,9 +4,10 @@ import Data.Random.List (randomElement)
 import Data.Time (Day)
 import Data.Time.Calendar.Julian (fromJulian)
 import qualified Polysemy as P
-import qualified Polysemy.Error as P
+import qualified Polysemy.Fail as P
 import qualified Polysemy.RandomFu as P
 import Shinobu.Effects.IndexStore
+import Shinobu.Effects.UserError
 import Shinobu.Gacha.Character
 import Shinobu.Gacha.Economy
 import Shinobu.Gacha.Rarity
@@ -31,16 +32,16 @@ type PackStore = IndexStore Pack
 allPacks =
   [ Pack
       { name = "classic",
-        cost = 10,
+        cost = UnsafeMoney 10,
         description = "sample text idk",
         start_date = fromJulian 2020 10 5,
         end_date = Just $ fromJulian 2021 05 30
       }
   ]
 
-buyPack :: [P.Error String, P.RandomFu, UserStore] :>> r => Pack -> GachaUser -> P.Sem r ForcedWaifuGivingResult
+buyPack :: [P.Fail, UserError, P.RandomFu, UserStore] :>> r => Pack -> GachaUser -> P.Sem r ForcedWaifuGivingResult
 buyPack pack buyer = do
-  addMoney buyer (- pack ^. #cost)
+  removeMoney buyer (pack ^. #cost) & intoUserError
   waifu <- sampleWaifu pack
   forceGiveWaifu buyer waifu
 

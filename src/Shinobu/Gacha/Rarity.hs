@@ -5,7 +5,7 @@ import Data.Colour.Names (cyan, gold, grey, red)
 import qualified Data.Random.Distribution.Categorical as C
 import qualified Polysemy as P
 import qualified Polysemy.RandomFu as P
-import Shinobu.Gacha.Economy (Money)
+import Shinobu.Gacha.Economy
 
 data RarityType = Common | Rare | Legendary | Godlike
   deriving (Show, Eq, Ord, Enum, Bounded)
@@ -28,19 +28,19 @@ rarityName (Rarity t Basic) = show t
 rarityName (Rarity t Plus) = rarityName (Rarity t Basic) <> "+"
 
 refundValue :: Rarity -> Money
-refundValue (Rarity r Basic) = case r of
+refundValue (Rarity r Basic) = UnsafeMoney $ case r of
   Common -> 3
   Rare -> 10
   Legendary -> 50
   Godlike -> 200
-refundValue (Rarity r Plus) = 2 * refundValue (Rarity r Basic)
+refundValue (Rarity r Plus) = UnsafeMoney 2 $*$ refundValue (Rarity r Basic)
 
 upgradeCost :: Rarity -> Maybe Money
 upgradeCost (Rarity _ Basic) = Nothing
 upgradeCost (Rarity t Plus) = case t of
-  Common -> Just 10
-  Rare -> Just 50
-  Legendary -> Just 100
+  Common -> Just $ UnsafeMoney 10
+  Rare -> Just $ UnsafeMoney 50
+  Legendary -> Just $ UnsafeMoney 100
   _ -> Nothing
 
 rarityDist :: C.Categorical Double RarityType

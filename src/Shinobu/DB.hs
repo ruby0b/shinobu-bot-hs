@@ -14,6 +14,15 @@ deriving newtype instance ToField (Snowflake a)
 
 deriving newtype instance FromField (Snowflake a)
 
+instance ToField Natural where toField = toField . toInteger
+
+instance FromField Natural where
+  fromField f =
+    fromField @Integer f >>= \x ->
+      if x >= 0
+        then return $ fromInteger x
+        else returnError ConversionFailed f ("expected a non-negative number but got" ++ show x)
+
 deriving newtype instance ToField Money
 
 deriving newtype instance FromField Money

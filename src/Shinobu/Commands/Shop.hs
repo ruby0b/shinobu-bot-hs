@@ -5,9 +5,10 @@ import CalamityCommands (Named, command, help)
 import Data.Sequences (toLower)
 import qualified Polysemy as P
 import Shinobu.Effects.IndexStore
+import Shinobu.Effects.UserError
 import Shinobu.Gacha
 import Shinobu.Types
-import Shinobu.Effects.UserError
+import Shinobu.Util (maybeThrow)
 
 handlePackBuyResult :: ForcedWaifuGivingResult -> Embed
 handlePackBuyResult = \case
@@ -30,12 +31,13 @@ packCmd :: ShinobuSem r
 packCmd = void $
   help (const "Buy a pack with the given name. List all currently available packs if given no")
     . command @'[Named "pack name" (Maybe Text)] "pack"
-    $ \ctx -> runUserErrorTellEmbed . intoUserError ctx . \case
-      Just packName -> void do
-        pack <- searchPack packName >>= maybeUserError ctx [i|There's no pack named #{packName}!|]
-        user <- getOrCreateUser . fromSnowflake . view #id . view #user $ ctx
-        embed <- handlePackBuyResult <$> buyPack pack user
-        tell ctx embed
-      Nothing -> void do
-        packs <- allPacksEmbed
-        tell ctx packs
+    $ \ctx ->
+      runUserErrorTellEmbed ctx . \case
+        Just packName -> void do
+          pack <- searchPack packName >>= maybeThrow [i|There's no pack named #{packName}!|]
+          user <- getOrCreateUser . fromSnowflake . view #id . view #user $ ctx
+          embed <- handlePackBuyResult <$> buyPack pack user
+          tell ctx embed
+        Nothing -> void do
+          packs <- allPacksEmbed
+          tell ctx packs

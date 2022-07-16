@@ -3,24 +3,18 @@ module Shinobu.Effects.UserError where
 import Calamity
 import qualified Polysemy as P
 import qualified Polysemy.Error as P
-import Shinobu.Util (tellError)
+import Shinobu.Util
 
-data UserError = forall t. Tellable t => UserError t Text
+newtype UserErr = UserErr Text
+  deriving newtype (IsString, Eq, Ord)
 
-userError :: (P.Error UserError :> r, Tellable t) => t -> Text -> P.Sem r a
-userError t msg = P.throw (UserError t msg)
+type UserError = P.Error UserErr
 
-maybeUserError :: (P.Member (P.Error UserError) r, Tellable t) => t -> Text -> Maybe a -> P.Sem r a
-maybeUserError t msg = maybe (userError t msg) return
-
-runUserErrorTellEmbed :: BotC r => P.Sem (P.Error UserError : r) a -> P.Sem r ()
-runUserErrorTellEmbed =
+runUserErrorTellEmbed :: (BotC r, Tellable t) => t -> P.Sem (UserError : r) a -> P.Sem r ()
+runUserErrorTellEmbed t =
   P.runError >=> \case
-    Left (UserError t msg) -> void $ tellError t msg
+    Left (UserErr msg) -> void $ tellError t msg
     Right _ -> return ()
 
-intoUserError :: (P.Error UserError :> r, Tellable t) => t -> P.Sem (P.Error String : r) c -> P.Sem r c
-intoUserError t =
-  P.runError >=> \case
-    Left e -> userError t (fromString e)
-    Right x -> return x
+intoUserError :: UserError :> r => P.Sem (P.Error Text : r) c -> P.Sem r c
+intoUserError = P.runError >=> leftThrow UserErr

@@ -1,8 +1,9 @@
 module Shinobu.Gacha.Waifu where
 
 import qualified Polysemy as P
-import qualified Polysemy.Error as P
+import qualified Polysemy.Fail as P
 import Shinobu.Effects.IndexStore
+import Shinobu.Effects.UserError
 import Shinobu.Gacha.Character
 import Shinobu.Gacha.Economy
 import Shinobu.Gacha.Rarity
@@ -33,7 +34,7 @@ data ForcedWaifuGivingResult
   | AutoUpgraded OwnedWaifu
   | NewWaifu OwnedWaifu
 
-forceGiveWaifu :: P.Error String :> r => GachaUser -> Waifu -> P.Sem r ForcedWaifuGivingResult
+forceGiveWaifu :: [P.Fail, UserError] :>> r => GachaUser -> Waifu -> P.Sem r ForcedWaifuGivingResult
 forceGiveWaifu user newWaifu =
   giveWaifu user newWaifu >>= \case
     Duplicate oldWaifu cmp ->
@@ -72,14 +73,14 @@ refund :: GachaUser -> OwnedWaifu -> P.Sem r (Money, Waifu)
 refund user ownedWaifu = unsafeRefund user (ownedWaifu ^. #waifu)
 
 -- TODO: using linear types to ensure payment would give us a safe upgrade
-unsafeAutoUpgrade :: P.Error String :> r => OwnedWaifu -> P.Sem r (OwnedWaifu, Money)
+unsafeAutoUpgrade :: P.Fail :> r => OwnedWaifu -> P.Sem r (OwnedWaifu, Money)
 unsafeAutoUpgrade ownedWaifu =
   let rarity = ownedWaifu ^. #waifu % #rarity
       user = ownedWaifu ^. #owner
       invalidRarity = [i|Unable to upgrade rarity #{rarity}|]
    in case rarity of
         Rarity t Plus -> do
-          (newRarity, cost) <- maybeThrow invalidRarity do
+          (newRarity, cost) <- maybe (fail invalidRarity) return do
             cost <- upgradeCost rarity
             rarityT <- maybeSucc t
             Just (Rarity rarityT Basic, cost)
@@ -94,7 +95,7 @@ unsafeAutoUpgrade ownedWaifu =
           -- close DB transaction
 
           pure (upgradedWaifu, cost)
-        Rarity _ Basic -> P.throw invalidRarity
+        Rarity _ Basic -> fail invalidRarity
 
 removeWaifu :: OwnedWaifu -> P.Sem r ()
 removeWaifu = pure (pure ()) -- TODO
