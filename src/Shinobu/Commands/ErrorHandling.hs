@@ -13,17 +13,17 @@ tellErrors = void $
     P.info $ "Command failed with reason: " <> show e
     tellError ctx case e of
       ParseError n r ->
-        "Failed to parse parameter: "
+        "Failed to parse parameter "
           <> codeline (from n)
-          <> ", with reason: "
+          <> ": "
           <> codeblock' Nothing r
       CheckError n r ->
-        "The following check failed: "
+        "The check "
           <> codeline (from n)
-          <> ", with reason: "
+          <> " failed: "
           <> codeblock' Nothing r
       InvokeError n r ->
-        "The command: "
+        "The command "
           <> codeline (from n)
-          <> ", failed with reason: "
+          <> " failed: "
           <> codeblock' Nothing r
