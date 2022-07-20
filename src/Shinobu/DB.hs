@@ -5,7 +5,6 @@ module Shinobu.DB where
 import Calamity
 import Database.SQLite.Simple
 import Database.SQLite.Simple.FromField
-import qualified Database.SQLite.Simple.FromRow as SQL
 import Database.SQLite.Simple.QQ.Interpolated
 import Database.SQLite.Simple.ToField (ToField (..))
 import qualified Database.SQLite.Simple.Types as SQL
@@ -17,8 +16,6 @@ import Shinobu.Gacha
 newtype ShowField = ShowField {showField :: Text}
 
 data DynShow = forall a. Show a => DynShow {unDynShow :: a}
-
-rawField = SQL.field
 
 instance FromField ShowField where
   fromField f =

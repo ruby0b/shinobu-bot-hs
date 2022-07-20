@@ -4,6 +4,7 @@ import Calamity
 import Calamity.Commands
 import qualified Database.SQLite.Simple as SQL
 import Shinobu.Checks
+import Shinobu.DB
 import qualified Shinobu.Effects.DB as DB
 import Shinobu.Parsers
 import Shinobu.Types
@@ -16,7 +17,7 @@ remoteSQLCmd = void do
     . requires' "Owner" isBotOwnerCtx
     . command @'[Named "query" Code] "sql"
     $ \ctx queryCode -> void do
-      res :: [(Int, Int)] <- DB.run $ flip SQL.query_ (fromString $ toString $ queryCode ^. #code)
-      -- TODO use a pretty ascii table
-      let table = unlines $ map show res
-      tellInfo ctx (codeblock' Nothing table)
+      rows :: [[ShowField]] <- DB.run $ flip SQL.query_ (fromString $ toString $ queryCode ^. #code)
+      -- TODO print a pretty ascii table
+      let table = unlines $ map (unwords . map showField) rows
+      tellInfo ctx $ codeblock' Nothing table
