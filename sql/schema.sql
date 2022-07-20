@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS "user" (
 	"last_withdrawal"	TEXT NOT NULL DEFAULT CURRENT_DATE,
 	"birthday"	TEXT,
 	"mal_username"	TEXT UNIQUE,
+	"is_owner"	BOOLEAN NOT NULL DEFAULT 0 CHECK("is_owner" IN (0, 1)),
 	PRIMARY KEY("id")
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_waifu" ON "waifu" (

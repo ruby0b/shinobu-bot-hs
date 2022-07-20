@@ -12,11 +12,13 @@ executable shinobu-bot
   -- cabal-fmt: expand src -Main
   other-modules:
     Prelude
+    Shinobu.Checks
     Shinobu.Commands.BannedPatterns
     Shinobu.Commands.CallNotification
     Shinobu.Commands.CustomReactions
     Shinobu.Commands.ErrorHandling
     Shinobu.Commands.Misc
+    Shinobu.Commands.RemoteSQL
     Shinobu.Commands.Shop
     Shinobu.DB
     Shinobu.Effects.Cache
@@ -35,11 +37,13 @@ executable shinobu-bot
     Shinobu.Gacha.User
     Shinobu.Gacha.Waifu
     Shinobu.KeyStoreCommands
+    Shinobu.Parsers
     Shinobu.Types
     Shinobu.Util
 
   build-depends:
     , base                       >=4.14     && <5
+    , boxes                      >=0.1.5
     , calamity                   >=0.5.0.0
     , calamity-commands          >=0.4.0.0
     , clock                      >=0.8.3
@@ -49,6 +53,7 @@ executable shinobu-bot
     , di                         >=1.3
     , di-polysemy                >=0.2.0.0
     , errors                     >=2.3.0
+    , megaparsec                 >=9.2.1
     , mono-traversable           >=1.0.15.3
     , optics                     >=0.4.2
     , polysemy                   >=1.7

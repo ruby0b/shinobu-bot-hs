@@ -2,11 +2,9 @@ module Shinobu.Util where
 
 import Calamity
 import Calamity.Commands (help)
-import Calamity.Commands.Context (FullContext)
 import Calamity.Types.LogEff (LogEff)
 import qualified Data.Colour as Colour
 import qualified Data.Colour.Names as Colour
-import Data.Flags ((.~.))
 import Data.Foldable (maximum)
 import Data.List.NonEmpty (groupBy)
 import qualified Data.Text.Encoding as T
@@ -73,17 +71,6 @@ tellInfo = tellEmbedWithColor Colour.violet
 tellSuccess = tellEmbedWithColor Colour.limegreen
 
 tellError = tellEmbedWithColor Colour.red
-
-isAdminCtx :: BotC r => FullContext -> P.Sem r (Maybe Text)
-isAdminCtx ctx = do
-  case ctx ^. #channel of
-    GuildChannel' chan -> do
-      perms <- permissionsIn' chan (ctx ^. #user)
-      pure
-        if perms .~. administrator
-          then Nothing
-          else Just "You have to be an administrator to use this command."
-    _ -> pure $ Just "You can't use this command outside of a server."
 
 help_ :: P.Reader (c -> Text) :> r => Text -> P.Sem r a -> P.Sem r a
 help_ = help . const

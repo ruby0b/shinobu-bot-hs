@@ -10,6 +10,7 @@ import Database.SQLite.Simple.QQ.Interpolated
 import qualified Polysemy as P
 import qualified Polysemy.Error as P
 import qualified Polysemy.NonDet as P
+import Shinobu.Checks
 import Shinobu.DB ()
 import qualified Shinobu.Effects.Cache as C
 import Shinobu.Effects.Cooldown

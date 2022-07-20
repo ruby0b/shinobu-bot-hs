@@ -20,6 +20,7 @@ import Shinobu.Commands.CallNotification
 import Shinobu.Commands.CustomReactions
 import Shinobu.Commands.ErrorHandling
 import Shinobu.Commands.Misc
+import Shinobu.Commands.RemoteSQL
 import Shinobu.Commands.Shop
 import Shinobu.Effects.Cooldown
 import qualified Shinobu.Effects.DB as DB
@@ -55,3 +56,4 @@ main = do
       callReaction
       tellErrors
       bannedPatterns
+      remoteSQLCmd

@@ -5,6 +5,7 @@ import Calamity.Commands
 import qualified Data.Map.Strict as M
 import qualified Database.SQLite.Simple as SQL
 import Database.SQLite.Simple.QQ.Interpolated
+import Shinobu.Checks
 import qualified Shinobu.Effects.KeyStore as Id
 import Shinobu.KeyStoreCommands
 import Shinobu.Types
