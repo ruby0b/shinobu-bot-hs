@@ -10,15 +10,15 @@ import Database.SQLite.Simple.QQ.Interpolated
 import qualified Polysemy as P
 import qualified Polysemy.Error as P
 import qualified Polysemy.NonDet as P
-import Shinobu.Checks
-import Shinobu.DB ()
 import qualified Shinobu.Effects.Cache as C
 import Shinobu.Effects.Cooldown
 import qualified Shinobu.Effects.KeyStore as Id
 import Shinobu.Effects.UserError
-import Shinobu.KeyStoreCommands
-import Shinobu.Types
-import Shinobu.Util
+import Shinobu.Utils.Checks
+import Shinobu.Utils.DB ()
+import Shinobu.Utils.KeyStoreCommands
+import Shinobu.Utils.Misc
+import Shinobu.Utils.Types
 
 voiceChannelMembers :: (BotC r, P.Error String :> r) => VoiceChannel -> P.Sem r [Member]
 voiceChannelMembers voiceChannel = do
@@ -82,7 +82,7 @@ callReaction = void
     let spec = KeyStoreSpec {groupName = "ring", itemSingular = "call notification", itemPlural = "call notifications"}
 
     help_ [i|Manage #{spec ^. #itemPlural}|]
-      . requires' "Admin" isAdminCtx
+      . requiresAdmin
       . group (spec ^. #groupName)
       $ do
         help_ [i|Add a new #{spec ^. #itemSingular}|]

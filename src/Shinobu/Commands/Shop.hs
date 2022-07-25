@@ -7,8 +7,8 @@ import qualified Polysemy as P
 import Shinobu.Effects.IndexStore
 import Shinobu.Effects.UserError
 import Shinobu.Gacha
-import Shinobu.Types
-import Shinobu.Util
+import Shinobu.Utils.Misc
+import Shinobu.Utils.Types
 
 handlePackBuyResult :: ForcedWaifuGivingResult -> Embed
 handlePackBuyResult = \case

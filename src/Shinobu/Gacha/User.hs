@@ -5,7 +5,7 @@ import qualified Polysemy as P
 import qualified Polysemy.Error as P
 import Shinobu.Effects.IndexStore
 import Shinobu.Gacha.Economy
-import Shinobu.Util ((//))
+import Shinobu.Utils.Misc
 
 data GachaUser = GachaUser
   { uId :: Word64,

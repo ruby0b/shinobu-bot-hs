@@ -5,8 +5,8 @@ import Calamity.Commands
 import Data.Random (stdUniform)
 import qualified Polysemy.RandomFu as P
 import Shinobu.Gacha.User (allUserIds, getOrCreateUser)
-import Shinobu.Types
-import Shinobu.Util
+import Shinobu.Utils.Misc
+import Shinobu.Utils.Types
 
 miscCommands :: ShinobuSem r
 miscCommands = void do

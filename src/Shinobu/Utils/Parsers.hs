@@ -1,12 +1,18 @@
-module Shinobu.Parsers (InlineCode (..), CodeBlock (..), Code (..)) where
+module Shinobu.Utils.Parsers (InlineCode (..), CodeBlock (..), Code (..), TimeSpan (..)) where
 
 import Calamity.Commands
 import CalamityCommands.ParameterInfo
 import Data.Char (isAlphaNum)
+import Data.Time
 import Text.Megaparsec
 import qualified Text.Megaparsec as MP
-import Text.Megaparsec.Char (newline)
+import Text.Megaparsec.Char
 import Text.Megaparsec.Char.Lexer
+
+choiceBacktrack :: MonadParsec e s f => [f a] -> f a
+choiceBacktrack [] = empty
+choiceBacktrack [x] = x
+choiceBacktrack (x : xs) = try x <|> choiceBacktrack xs
 
 parserName :: forall a c r. ParameterParser a c r => Text
 parserName =
@@ -31,7 +37,7 @@ instance ParameterParser CodeBlock c r where
   parse = parseMP (parserName @CodeBlock) codeBlock
 
 instance ParameterParser Code c r where
-  parameterDescription = "multiline code block surrounded by triple backticks"
+  parameterDescription = "code block (multiline or inline)"
   parse = parseMP (parserName @Code) codeP
 
 inlineCode :: MonadParsec e Text m => m InlineCode
@@ -51,6 +57,24 @@ codeBlock = do
 
 codeP :: MonadParsec e Text f => f Code
 codeP =
-  try (Left <$> inlineCode) <|> (Right <$> codeBlock) <&> \case
+  choiceBacktrack [Left <$> inlineCode, Right <$> codeBlock] <&> \case
     Left inlineCode_ -> Code "" (inlineCode_ ^. #code)
     Right codeBlock_ -> Code (codeBlock_ ^. #lang) (codeBlock_ ^. #code)
+
+newtype TimeSpan = TimeSpan {fromTimeSpan :: NominalDiffTime}
+  deriving newtype (Num)
+  deriving stock (Show, Generic)
+
+instance ParameterParser TimeSpan c r where
+  parameterDescription = "time span"
+  parse = parseMP (parserName @TimeSpan) timeP
+
+timeP :: MonadParsec e Text f => f TimeSpan
+timeP =
+  choiceBacktrack
+    [ decimal <* chunk "s",
+      (* 60) <$> decimal <* chunk "m",
+      (* (60 * 60)) <$> decimal <* chunk "h"
+    ]
+
+-- todo regex parser (use compileRegex or something)

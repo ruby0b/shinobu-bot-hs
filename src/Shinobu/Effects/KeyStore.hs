@@ -9,7 +9,7 @@ import qualified Polysemy.Resource as P
 import qualified Polysemy.State as P
 import qualified Shinobu.Effects.Cache as C
 import qualified Shinobu.Effects.DB as DB
-import Shinobu.Util (maximumOr, whenNothingRun)
+import Shinobu.Utils.Misc
 
 class NewUnique a where
   -- | Returns a value that's not already in @f a@.

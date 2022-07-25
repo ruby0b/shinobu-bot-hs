@@ -1,4 +1,4 @@
-module Shinobu.Util where
+module Shinobu.Utils.Misc where
 
 import Calamity
 import Calamity.Commands (help)
@@ -71,6 +71,13 @@ tellInfo = tellEmbedWithColor Colour.violet
 tellSuccess = tellEmbedWithColor Colour.limegreen
 
 tellError = tellEmbedWithColor Colour.red
+
+messageLink :: Message -> Text
+messageLink m =
+  let gld = maybe "@me" (show @Text . fromSnowflake) (m ^. #guildID)
+      chn = show @Text $ fromSnowflake $ getID @Channel m
+      msg = show @Text $ fromSnowflake $ getID @Message m
+   in [i|https://discord.com/channels/#{gld}/#{chn}/#{msg}|]
 
 help_ :: P.Reader (c -> Text) :> r => Text -> P.Sem r a -> P.Sem r a
 help_ = help . const

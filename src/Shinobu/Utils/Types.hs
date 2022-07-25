@@ -1,4 +1,4 @@
-module Shinobu.Types where
+module Shinobu.Utils.Types where
 
 import Calamity (BotC)
 import Calamity.Commands (DSLC)

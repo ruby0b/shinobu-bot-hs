@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Shinobu.DB where
+module Shinobu.Utils.DB where
 
 import Calamity
 import Database.SQLite.Simple
@@ -12,10 +12,10 @@ import Shinobu.Effects.IndexStore (HasKey (..))
 import Shinobu.Gacha
 
 -- | Wrapper for FromField which shows the field as Text,
--- no matter its actual type (can't handle binary BLOBs)
+-- no matter its actual type (doesn't handle binary blobs)
 newtype ShowField = ShowField {showField :: Text}
 
-data DynShow = forall a. Show a => DynShow {unDynShow :: a}
+data DynShow = forall a. Show a => DynShow a
 
 instance FromField ShowField where
   fromField f =

@@ -1,11 +1,11 @@
-module Shinobu.KeyStoreCommands where
+module Shinobu.Utils.KeyStoreCommands where
 
 import Calamity.Commands
 import Calamity.Commands.Context (FullContext)
 import qualified Polysemy as P
 import qualified Shinobu.Effects.KeyStore as Id
-import Shinobu.Types
-import Shinobu.Util
+import Shinobu.Utils.Misc
+import Shinobu.Utils.Types
 
 data KeyStoreSpec = KeyStoreSpec
   { groupName :: Text,

@@ -5,11 +5,11 @@ import Calamity.Commands
 import qualified Data.Map.Strict as M
 import qualified Database.SQLite.Simple as SQL
 import Database.SQLite.Simple.QQ.Interpolated
-import Shinobu.Checks
 import qualified Shinobu.Effects.KeyStore as Id
-import Shinobu.KeyStoreCommands
-import Shinobu.Types
-import Shinobu.Util
+import Shinobu.Utils.Checks
+import Shinobu.Utils.KeyStoreCommands
+import Shinobu.Utils.Misc
+import Shinobu.Utils.Types
 import Text.RE.TDFA
 
 type PatternID = Integer
@@ -43,7 +43,7 @@ bannedPatterns = void
     let spec = KeyStoreSpec {groupName = "banned", itemSingular = "banned regex pattern", itemPlural = "banned regex patterns"}
 
     help_ [i|Manage #{spec ^. #itemPlural}|]
-      . requires' "Admin" isAdminCtx
+      . requiresAdmin
       . group (spec ^. #groupName)
       $ do
         help_ [i|Add a new #{spec ^. #itemSingular}|]

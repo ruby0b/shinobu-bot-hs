@@ -20,12 +20,13 @@ import Shinobu.Commands.CallNotification
 import Shinobu.Commands.CustomReactions
 import Shinobu.Commands.ErrorHandling
 import Shinobu.Commands.Misc
+import Shinobu.Commands.Purge
 import Shinobu.Commands.RemoteSQL
 import Shinobu.Commands.Shop
 import Shinobu.Effects.Cooldown
 import qualified Shinobu.Effects.DB as DB
 import Shinobu.Gacha.DB
-import Shinobu.Util
+import Shinobu.Utils.Misc
 
 main :: IO ()
 main = do
@@ -57,3 +58,4 @@ main = do
       tellErrors
       bannedPatterns
       remoteSQLCmd
+      purgeCmd

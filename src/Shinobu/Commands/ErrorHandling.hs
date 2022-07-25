@@ -4,8 +4,8 @@ import Calamity
 import Calamity.Commands
 import Calamity.Commands.Context
 import qualified DiPolysemy as P
-import Shinobu.Types (ShinobuSem)
-import Shinobu.Util
+import Shinobu.Utils.Misc
+import Shinobu.Utils.Types (ShinobuSem)
 
 tellErrors :: ShinobuSem r
 tellErrors = void $

@@ -8,7 +8,7 @@ import Shinobu.Gacha.Character
 import Shinobu.Gacha.Economy
 import Shinobu.Gacha.Rarity
 import Shinobu.Gacha.User
-import Shinobu.Util
+import Shinobu.Utils.Misc
 
 data Waifu = Waifu
   { char :: Character,

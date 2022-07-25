@@ -1,13 +1,18 @@
-module Shinobu.Checks where
+module Shinobu.Utils.Checks where
 
 import Calamity
+import Calamity.Commands
 import Calamity.Commands.Context (FullContext)
 import Data.Flags ((.~.))
 import qualified Database.SQLite.Simple as SQL
 import Database.SQLite.Simple.QQ.Interpolated
 import qualified Polysemy as P
-import Shinobu.DB ()
 import qualified Shinobu.Effects.DB as DB
+import Shinobu.Utils.DB ()
+
+requiresAdmin = requires' "Admin" isAdminCtx
+
+requiresOwner = requires' "Owner" isBotOwnerCtx
 
 isAdminCtx :: BotC r => FullContext -> P.Sem r (Maybe Text)
 isAdminCtx ctx = do
