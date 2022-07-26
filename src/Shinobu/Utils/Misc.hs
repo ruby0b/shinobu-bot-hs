@@ -6,7 +6,7 @@ import Calamity.Types.LogEff (LogEff)
 import qualified Data.Colour as Colour
 import qualified Data.Colour.Names as Colour
 import Data.Foldable (maximum)
-import Data.List.NonEmpty (groupBy)
+import qualified Data.List.NonEmpty as NE
 import qualified Data.Text.Encoding as T
 import qualified DiPolysemy as P
 import qualified Polysemy as P
@@ -93,12 +93,23 @@ shareFst ts = (fst3 $ head ts,) $ (\(_, y, z) -> (y, z)) <$> ts
 
 -- | return value is sorted by the first tuple element in ascending order
 indexByFst :: Ord a => [(a, b, c)] -> [(a, NonEmpty (b, c))]
-indexByFst = map shareFst . groupBy ((==) `on` fst3) . sortOn fst3
+indexByFst = map shareFst . NE.groupBy ((==) `on` fst3) . sortOn fst3
+
+unsumEqWithRem :: Integral a => a -> a -> [a]
+unsumEqWithRem x y =
+  let (quotient, remainder) = x `divMod` y
+   in genericReplicate quotient y ++ [remainder]
+
+firstLeft :: (Monoid b, Foldable t) => t (Either a b) -> Either a b
+firstLeft = foldr (either (const . Left) (fmap . (<>))) (Right mempty)
 
 maximumOr :: (Ord p, Foldable f) => p -> f p -> p
 maximumOr defaultVal xs
   | null xs = defaultVal
   | otherwise = maximum xs
+
+firstJustM :: (Foldable t, Monad m) => t (m (Maybe a)) -> m (Maybe a)
+firstJustM = foldlM (fmap . (<|>)) Nothing
 
 whenNothingRun :: Monad m => Maybe a -> m b -> m (Maybe a)
 whenNothingRun (Just a) _ = pure (Just a)

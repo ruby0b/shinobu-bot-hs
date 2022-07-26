@@ -8,8 +8,35 @@ import Calamity.Types.LogEff
 import Control.Concurrent (threadDelay)
 import Data.Bits (shiftL, shiftR)
 import Data.List (partition)
+import Data.Maybe (fromJust)
 import Data.Time (NominalDiffTime, UTCTime (..), addUTCTime, diffUTCTime, fromGregorian, getCurrentTime, secondsToDiffTime)
 import qualified Polysemy as P
+import qualified Polysemy.Error as P
+
+getManyMessages ::
+  ( HasID Channel c,
+    P.Members '[P.Error RestError, RatelimitEff, TokenEff, LogEff, MetricEff, P.Embed IO] r
+  ) =>
+  Int ->
+  c ->
+  P.Sem r [Message]
+getManyMessages amount c = do
+  let (q, r) = amount `divMod` 100
+      getMessages f l = invoke $ GetChannelMessages c f (Just $ ChannelMessagesLimit $ toInteger l)
+  (f, ms) <-
+    P.fromEither
+      =<< foldr
+        ( \_ acc -> do
+            (f, ms) <- P.fromEither =<< acc
+            ms' <- P.fromEither =<< getMessages f 100
+            let m = view #id $ fromJust $ viaNonEmpty last ms'
+            P.embed (threadDelay 1_000_000)
+            return $ Right (Just $ ChannelMessagesBefore m, ms' ++ ms)
+        )
+        (return $ Right (Nothing, []))
+        [1 .. q]
+  ms' <- P.fromEither =<< getMessages f r
+  return (ms ++ ms')
 
 deleteMessage ::
   ( HasID Channel c,
@@ -44,10 +71,11 @@ deleteManyMessagesInBulks ::
   [m] ->
   P.Sem r (Either RestError ())
 deleteManyMessagesInBulks c =
-  chunks 100
-    >>> map (\(m :| ms) -> if null ms then invoke $ DeleteMessage c m else invoke $ BulkDeleteMessages c (m : ms))
-    >>> intersperse (P.embed (threadDelay 1_000_000) $> Right ())
-    >>> firstLeftM
+  delayedChunks 100 1_000_000 $
+    \(m :| ms) ->
+      if null ms
+        then invoke $ DeleteMessage c m
+        else invoke $ BulkDeleteMessages c (m : ms)
 
 deleteManyMessagesOneByOne ::
   ( HasID Channel c,
@@ -58,11 +86,25 @@ deleteManyMessagesOneByOne ::
   [m] ->
   P.Sem r (Either RestError ())
 deleteManyMessagesOneByOne c =
-  chunks 100
-    >>> map (firstLeftM . map (invoke . DeleteMessage c) . toList)
-    -- TODO: not sure if sleeping every 100 deletions is necessary here, discord.py does it
-    >>> intersperse (P.embed (threadDelay 1_000_000) $> Right ())
+  -- TODO: not sure if sleeping every 100 deletions is necessary here, discord.py does it
+  delayedChunks 100 1_000_000 $
+    \ms -> firstLeftM $ invoke . DeleteMessage c <$> ms
+
+delayedChunks ::
+  (P.Embed IO :> r, Monoid m) =>
+  Int ->
+  Int ->
+  (NonEmpty a -> P.Sem r (Either e m)) ->
+  [a] ->
+  P.Sem r (Either e m)
+delayedChunks chunkSize delay processChunk =
+  chunks chunkSize
+    >>> map processChunk
+    >>> intersperseDelays delay
     >>> firstLeftM
+
+intersperseDelays :: (P.Embed IO :> r, Monoid b) => Int -> [P.Sem r (Either a b)] -> [P.Sem r (Either a b)]
+intersperseDelays delay = intersperse (P.embed (threadDelay delay) $> Right mempty)
 
 youngerThan :: forall t a. HasID t a => NominalDiffTime -> UTCTime -> a -> Bool
 youngerThan diffTime now =
@@ -104,17 +146,14 @@ infiniteUnfoldr f = go
 takeWhileJust :: [Maybe (NonEmpty a)] -> [NonEmpty a]
 takeWhileJust = foldr (\x acc -> maybe [] (: acc) x) []
 
-firstJustM :: (Foldable t, Monad m) => t (m (Maybe a)) -> m (Maybe a)
-firstJustM = foldlM (fmap . (<|>)) Nothing
-
-firstLeftM :: Monad m => [m (Either a ())] -> m (Either a ())
-firstLeftM = maybeToLeft () <.> firstJustM . map (fmap leftToMaybe)
-
-fromLeftM :: Monad m => m (Either a b) -> Either a b -> m (Either a b)
-fromLeftM _ l@(Left _) = return l
-fromLeftM right (Right _) = right
+firstLeftM :: (Foldable t, Monad m, Monoid b) => t (m (Either a b)) -> m (Either a b)
+firstLeftM = foldlM (either (const . return . Left) (fmap . fmap . (<>))) (Right mempty)
 
 rightAndThenM :: Monad m => m (Either a b) -> m (Either a b) -> m (Either a b)
 rightAndThenM x y = x >>= fromLeftM y
 
 infixl 0 `rightAndThenM`
+
+fromLeftM :: Monad m => m (Either a b) -> Either a b -> m (Either a b)
+fromLeftM _ l@(Left _) = return l
+fromLeftM right (Right _) = right

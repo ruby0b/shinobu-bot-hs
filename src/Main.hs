@@ -59,3 +59,4 @@ main = do
       bannedPatterns
       remoteSQLCmd
       purgeCmd
+      spamCmd
