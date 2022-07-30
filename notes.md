@@ -39,3 +39,4 @@ def _update_voice_state(self, data, channel_id):
 
 # TODO
 - ID open type family for DB purposes
+- use runSeveral for runSyncInIO https://hackage.haskell.org/package/polysemy-zoo-0.8.0.0/docs/Polysemy-Several.html

@@ -100,9 +100,6 @@ unsumEqWithRem x y =
   let (quotient, remainder) = x `divMod` y
    in genericReplicate quotient y ++ [remainder]
 
-firstLeft :: (Monoid b, Foldable t) => t (Either a b) -> Either a b
-firstLeft = foldr (either (const . Left) (fmap . (<>))) (Right mempty)
-
 maximumOr :: (Ord p, Foldable f) => p -> f p -> p
 maximumOr defaultVal xs
   | null xs = defaultVal

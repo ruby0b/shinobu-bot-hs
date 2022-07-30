@@ -22,3 +22,9 @@ source-repository-package
     tag: ff8cf6c480cf5654621959fd620c87f8bf423a79
     subdir: polysemy-RandomFu
     --sha256: 0nmr93a4rpn7f1m7iasxqa5wyq6zhcwychd4bcqhk02n0abw07hj
+
+source-repository-package
+    type: git
+    location: https://gitlab.com/global-access-public/streaming-nonempty
+    tag: d0395dca06a20eef220279b49f91cdda9614d72c
+    --sha256: 0hswf2wdrlrr61ns5inq2y3f9qc8r4lwpxbrpjdw0qbj75i5h2g5
