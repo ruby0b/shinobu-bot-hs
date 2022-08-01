@@ -23,12 +23,12 @@ dryDeleteMessages t msgsStream = do
 
 purgeCmd :: ShinobuSem r
 purgeCmd = void do
-  help_ "Bulk delete messages (default limit: 100) (default time span: 1w)"
+  help_ "Bulk delete messages (default limit: 100 messages and 1 week)"
     . requiresAdmin
     . commandA
-      @'[ Named "time/limit" (Either TimeSpan Int),
+      @'[ Named "limit" (Either TimeSpan Int),
           Named "authors" [Snowflake User],
-          Named "pattern" (Maybe POSIXRegExp)
+          Named "pattern" (Maybe RegExp)
         ]
       "purge"
       ["pu"]

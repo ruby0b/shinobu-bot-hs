@@ -48,7 +48,7 @@ customReactions = void
       . group (spec ^. #groupName)
       $ do
         help_ [i|Add a new #{spec ^. #itemSingular}|]
-          . command @'[Named "pattern to match" POSIXRegExp, Named "My response" Text] "add"
+          . command @'[Named "pattern to match" RegExp, Named "my response" Text] "add"
           $ \ctx (getTDFA -> regex) response -> void do
             Id.insertNewKey (regex, response)
             tellSuccess ctx [i|Understood!\nI will now respond to the pattern #{fmtTDFA regex} by saying:\n#{quote response}|]

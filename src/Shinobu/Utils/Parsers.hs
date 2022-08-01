@@ -1,4 +1,4 @@
-module Shinobu.Utils.Parsers (InlineCode (..), CodeBlock (..), Code (..), TimeSpan (..), POSIXRegExp (..)) where
+module Shinobu.Utils.Parsers (InlineCode (..), CodeBlock (..), Code (..), TimeSpan (..), RegExp (..)) where
 
 import Calamity.Commands as CC
 import CalamityCommands.ParameterInfo
@@ -81,8 +81,8 @@ timeP =
       (* (7 * 24 * 60 * 60)) <$> decimal <* chunk "d"
     ]
 
-newtype POSIXRegExp = POSIXRegExp {getTDFA :: TDFA.RE}
+newtype RegExp = RegExp {getTDFA :: TDFA.RE}
 
-instance (P.Embed IO :> r) => ParameterParser POSIXRegExp c r where
+instance (P.Embed IO :> r) => ParameterParser RegExp c r where
   parameterDescription = "POSIX regular expression"
-  parse = CC.parse @Text >>= (P.embed . fmap POSIXRegExp . TDFA.compileRegex . toString)
+  parse = CC.parse @Text >>= (P.embed . fmap RegExp . TDFA.compileRegex . toString)
