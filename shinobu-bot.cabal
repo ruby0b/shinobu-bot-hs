@@ -41,6 +41,7 @@ executable shinobu-bot
     Shinobu.Utils.KeyStoreCommands
     Shinobu.Utils.Misc
     Shinobu.Utils.Parsers
+    Shinobu.Utils.Streaming
     Shinobu.Utils.Types
 
   build-depends:
@@ -116,6 +117,7 @@ executable shinobu-bot
     MultiParamTypeClasses
     MultiWayIf
     NamedFieldPuns
+    NumericUnderscores
     OverloadedLabels
     OverloadedStrings
     PartialTypeSignatures

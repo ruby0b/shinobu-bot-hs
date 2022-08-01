@@ -9,6 +9,7 @@ import qualified Shinobu.Effects.KeyStore as Id
 import Shinobu.Utils.Checks
 import Shinobu.Utils.KeyStoreCommands
 import Shinobu.Utils.Misc
+import Shinobu.Utils.Parsers
 import Shinobu.Utils.Types
 import Text.RE.TDFA
 
@@ -47,16 +48,15 @@ bannedPatterns = void
       . group (spec ^. #groupName)
       $ do
         help_ [i|Add a new #{spec ^. #itemSingular}|]
-          . command @'[Named "Regex to match" Text] "add"
-          $ \ctx pattern_ -> void do
-            regex <- compileRegex $ toString pattern_
+          . command @'[Named "pattern to match" POSIXRegExp] "add"
+          $ \ctx (getTDFA -> regex) -> void do
             Id.insertNewKey regex
-            tellSuccess ctx [i|Understood!\nI will now delete messages matching the pattern #{codeline pattern_}|]
+            tellSuccess ctx [i|Understood!\nI will now delete messages matching the pattern #{fmtTDFA regex}|]
 
         mkListCommand spec \id_ pattern_ ->
-          [i|#{id_}: #{codeline $ fromString $ reSource $ pattern_}|]
+          [i|#{id_}: #{fmtTDFA pattern_}|]
 
         mkDeleteCommand @Integer spec \_id pattern_ ->
-          [i|#{codeline $ fromString $ reSource $ pattern_}|]
+          [i|#{fmtTDFA pattern_}|]
 
         mkReloadCommand spec

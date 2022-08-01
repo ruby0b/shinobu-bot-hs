@@ -11,6 +11,7 @@ import Shinobu.Utils.Calamity
 import Shinobu.Utils.Checks
 import Shinobu.Utils.Misc
 import Shinobu.Utils.Parsers
+import qualified Shinobu.Utils.Streaming as S
 import Shinobu.Utils.Types
 import qualified Streaming.Prelude as S
 import Text.RE.TDFA
@@ -22,31 +23,34 @@ dryDeleteMessages t msgsStream = do
 
 purgeCmd :: ShinobuSem r
 purgeCmd = void do
-  help_ "Bulk delete messages (default limit: 100) (default time span: 1 day)"
+  help_ "Bulk delete messages (default limit: 100) (default time span: 1w)"
     . requiresAdmin
     . commandA
-      @'[ Named "limit/time" (Either Int TimeSpan),
+      @'[ Named "time/limit" (Either TimeSpan Int),
           Named "authors" [Snowflake User],
-          Named "pattern" (Maybe Text)
+          Named "pattern" (Maybe POSIXRegExp)
         ]
       "purge"
       ["pu"]
-    $ \ctx limitOrTime authors pattern_ -> runErrorTellEmbed @RestError ctx $ P.runNonDetMaybe do
-      let (limit, timeSpan) = case limitOrTime of
-            Left limit' -> (limit', fromTimeSpan $ 24 * 60 * 60)
-            Right timeSpan' -> (90, fromTimeSpan timeSpan')
-      now <- P.embed getCurrentTime
-      regex <- P.embed $ compileRegex $ (toString <$> pattern_) // ".*"
-      -- TODO don't use maxBound; always get infinite chunks of 100 or try to be smarter in getManyMessages
-      getManyMessages maxBound ctx
-        & S.dropWhile ((== getID @Message ctx) . view #id)
-        & S.takeWhile (youngerThan @Message timeSpan now)
-        & S.filter (\m -> null authors || (m ^. #author & getID @User) `elem` authors)
-        & S.filter (matched . (?=~ regex) . view #content)
-        & S.take limit
-        -- TODO signal end of message history and stop when reached
-        & deleteManyMessages ctx
-      deleteMessage ctx ctx
+    $ \ctx timeOrLimit authors (fmap getTDFA -> mRegex) ->
+      runErrorTellEmbed @RestError ctx $ P.runNonDetMaybe do
+        let (limit, timeSpan) = case timeOrLimit of
+              Left timeSpan' -> (100, fromTimeSpan timeSpan')
+              Right limit' -> (limit', fromTimeSpan $ 7 * 24 * 60 * 60)
+        now <- P.embed getCurrentTime
+        let regex = mRegex // [re|.*|]
+        let estimate =
+              if null authors && isNothing mRegex
+                then Just (min 100 (limit + 1))
+                else Nothing
+        getManyMessages estimate ctx
+          & S.takeWhile (youngerThan @Message timeSpan now)
+          & S.dropWhile ((== getID @Message ctx) . view #id)
+          & S.filter (\m -> null authors || (m ^. #author & getID @User) `elem` authors)
+          & S.filter (matched . (?=~ regex) . view #content)
+          & S.take limit
+          & deleteManyMessages ctx
+        deleteMessage ctx ctx
 
 spamCmd :: ShinobuSem r
 spamCmd = void do
@@ -56,4 +60,4 @@ spamCmd = void do
     $ \ctx amount -> void do
       S.replicateM amount (tell ctx "OwO")
         & S.map void
-        & delayedChunks 3 1 (L.purely S.fold firstLeft)
+        & delayedChunks 3 1 (L.purely S.fold S.firstLeft)

@@ -3,6 +3,7 @@ module Shinobu.Utils.Misc where
 import Calamity
 import Calamity.Commands (help)
 import Calamity.Types.LogEff (LogEff)
+import Control.Concurrent (threadDelay)
 import qualified Data.Colour as Colour
 import qualified Data.Colour.Names as Colour
 import Data.Foldable (maximum)
@@ -17,6 +18,7 @@ import qualified Polysemy.Fail as P
 import qualified Polysemy.Reader as P
 import Relude.Extra.Enum (safeToEnum)
 import System.Clock
+import qualified Text.RE.TDFA as TDFA
 
 class Foldable f => Optional f where
   (//) :: f a -> a -> a
@@ -85,8 +87,14 @@ help_ = help . const
 fmtCmd :: Text -> Text
 fmtCmd = codeline . ("=" <>)
 
+fmtTDFA :: TDFA.RE -> Text
+fmtTDFA = codeline . fromString . TDFA.reSource
+
 fst3 :: (a, b, c) -> a
 fst3 (x, _, _) = x
+
+snd3 :: (a, b, c) -> b
+snd3 (_, y, _) = y
 
 shareFst :: NonEmpty (a, b, c) -> (a, NonEmpty (b, c))
 shareFst ts = (fst3 $ head ts,) $ (\(_, y, z) -> (y, z)) <$> ts
@@ -155,3 +163,6 @@ readFileTextP fp =
   fromRightM (P.throw . (("Error while decoding " <> fp) <>) . show)
     . T.decodeUtf8'
     =<< readFileBS fp
+
+sleep :: MonadIO m => Double -> m ()
+sleep seconds = liftIO $ threadDelay $ truncate (seconds * 1_000_000)

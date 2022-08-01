@@ -9,6 +9,7 @@ import qualified Shinobu.Effects.KeyStore as Id
 import Shinobu.Utils.Checks
 import Shinobu.Utils.KeyStoreCommands
 import Shinobu.Utils.Misc
+import Shinobu.Utils.Parsers
 import Shinobu.Utils.Types
 import Text.RE.TDFA
 
@@ -47,16 +48,15 @@ customReactions = void
       . group (spec ^. #groupName)
       $ do
         help_ [i|Add a new #{spec ^. #itemSingular}|]
-          . command @'[Named "Regex to match" Text, Named "My response" Text] "add"
-          $ \ctx pattern_ response -> void do
-            regex <- compileRegex $ toString pattern_
+          . command @'[Named "pattern to match" POSIXRegExp, Named "My response" Text] "add"
+          $ \ctx (getTDFA -> regex) response -> void do
             Id.insertNewKey (regex, response)
-            tellSuccess ctx [i|Understood!\nI will now respond to the pattern #{codeline pattern_} by saying:\n#{quote response}|]
+            tellSuccess ctx [i|Understood!\nI will now respond to the pattern #{fmtTDFA regex} by saying:\n#{quote response}|]
 
         mkListCommand spec \id_ (pattern_, response) ->
-          [i|#{id_}: #{codeline $ fromString $ reSource $ pattern_}\n#{quote response}|]
+          [i|#{id_}: #{fmtTDFA pattern_}\n#{quote response}|]
 
         mkDeleteCommand @Integer spec \_id (pattern_, response) ->
-          [i|#{codeline $ fromString $ reSource $ pattern_}\n#{quote response}|]
+          [i|#{fmtTDFA pattern_}\n#{quote response}|]
 
         mkReloadCommand spec

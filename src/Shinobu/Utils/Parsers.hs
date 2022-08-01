@@ -1,13 +1,15 @@
-module Shinobu.Utils.Parsers (InlineCode (..), CodeBlock (..), Code (..), TimeSpan (..)) where
+module Shinobu.Utils.Parsers (InlineCode (..), CodeBlock (..), Code (..), TimeSpan (..), POSIXRegExp (..)) where
 
-import Calamity.Commands
+import Calamity.Commands as CC
 import CalamityCommands.ParameterInfo
 import Data.Char (isAlphaNum)
 import Data.Time
+import qualified Polysemy as P
 import Text.Megaparsec
 import qualified Text.Megaparsec as MP
 import Text.Megaparsec.Char
 import Text.Megaparsec.Char.Lexer
+import qualified Text.RE.TDFA as TDFA
 
 choiceBacktrack :: MonadParsec e s f => [f a] -> f a
 choiceBacktrack [] = empty
@@ -74,7 +76,13 @@ timeP =
   choiceBacktrack
     [ decimal <* chunk "s",
       (* 60) <$> decimal <* chunk "m",
-      (* (60 * 60)) <$> decimal <* chunk "h"
+      (* (60 * 60)) <$> decimal <* chunk "h",
+      (* (24 * 60 * 60)) <$> decimal <* chunk "d",
+      (* (7 * 24 * 60 * 60)) <$> decimal <* chunk "d"
     ]
 
--- todo regex parser (use compileRegex or something)
+newtype POSIXRegExp = POSIXRegExp {getTDFA :: TDFA.RE}
+
+instance (P.Embed IO :> r) => ParameterParser POSIXRegExp c r where
+  parameterDescription = "POSIX regular expression"
+  parse = CC.parse @Text >>= (P.embed . fmap POSIXRegExp . TDFA.compileRegex . toString)

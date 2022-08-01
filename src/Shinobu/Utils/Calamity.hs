@@ -3,39 +3,40 @@ module Shinobu.Utils.Calamity where
 import Calamity
 import Calamity.Metrics.Eff
 import Calamity.Types.LogEff
-import Control.Concurrent (threadDelay)
 import qualified Control.Foldl as L
 import Data.Bits (shiftL, shiftR)
 import Data.Time (NominalDiffTime, UTCTime (..), addUTCTime, diffUTCTime, fromGregorian, getCurrentTime, secondsToDiffTime)
 import qualified Data.Vector as V
 import qualified Polysemy as P
 import qualified Polysemy.Error as P
+import Shinobu.Utils.Misc
+import qualified Shinobu.Utils.Streaming as S
 import qualified Streaming as S
-import qualified Streaming.NonEmpty as NES
 import qualified Streaming.Prelude as S
 
 getManyMessages ::
   ( HasID Channel c,
     P.Members '[P.Error RestError, RatelimitEff, TokenEff, LogEff, MetricEff, P.Embed IO] r
   ) =>
-  Int ->
+  -- | Optional upper estimate of how many messages will be consumed.
+  -- This is not a hard limit, it's just for efficiency's sake.
+  -- The stream will continue yielding messages indefinitely anyway (as long as there are any left).
+  Maybe Int ->
   c ->
   S.Stream (S.Of Message) (P.Sem r) ()
 getManyMessages amount c =
-  let getMessages f l = invoke $ GetChannelMessages c f (Just $ ChannelMessagesLimit $ toInteger l)
-      iter (_, limit, filter_) =
-        if limit <= 0
-          then return (empty, limit, filter_)
-          else do
-            let retrieve = if limit >= 100 then 100 else limit
-            ms <- V.fromList <$> (P.fromEither =<< getMessages filter_ retrieve)
-            let limit' = if length ms < retrieve then 0 else limit - retrieve
-            let filter_' = Just $ ChannelMessagesBefore $ view #id $ V.last ms
-            return (ms, limit', filter_')
-   in S.iterateM iter (pure (empty, amount, Nothing))
-        & S.delay 1
-        & S.map (\(x, _, _) -> x)
-        & S.concat
+  S.concat $ loop (Nothing, amount)
+  where
+    getMessages f l = invoke $ GetChannelMessages c f (Just $ ChannelMessagesLimit $ toInteger l)
+    loop (filter_, limitM) = do
+      let retrieve = maybe 100 (min 100) limitM
+      ms <- lift $ V.fromList <$> (P.fromEither =<< getMessages filter_ retrieve)
+      S.yield ms
+      let filter' = Just $ ChannelMessagesBefore (V.last ms ^. #id)
+      let limit' = subtract retrieve <$> limitM
+      unless (length ms < retrieve || maybe False (<= 0) limit') do
+        sleep 1
+        loop (filter', limit')
 
 deleteMessage ::
   ( HasID Channel c,
@@ -54,14 +55,15 @@ deleteManyMessages ::
   P.Members '[RatelimitEff, TokenEff, LogEff, MetricEff, P.Embed IO] r =>
   c ->
   S.Stream (S.Of m) (P.Sem r) s ->
-  P.Sem r (S.Of (Either RestError ()) s)
+  P.Sem r (Either RestError (), s)
 deleteManyMessages channel messages = do
   now <- P.embed getCurrentTime
   messages
     & S.span (youngerThan @Message twoWeeks now)
     & deleteManyMessagesInBulks channel
-    >>= secondA (deleteManyMessagesOneByOne channel)
-    <&> ofFold1
+    >>= S.secondA (deleteManyMessagesOneByOne channel)
+    <&> S.ofFold1
+    <&> S.lazily
 
 deleteManyMessagesInBulks ::
   ( HasID Channel c,
@@ -72,6 +74,20 @@ deleteManyMessagesInBulks ::
   S.Stream (S.Of m) (P.Sem r) s ->
   P.Sem r (S.Of (Either RestError ()) s)
 deleteManyMessagesInBulks c =
+  -- loop undefined
+  --   & L.purely S.fold S.firstLeft
+  -- where
+  --   loop [] = return ()
+  --   loop ((m :| ms) : mss) = do
+  --     res <-
+  --       lift
+  --         if null ms
+  --           then invoke $ DeleteMessage c m
+  --           else invoke $ BulkDeleteMessages c (m : ms)
+  --     S.yield res
+  --     unless (null mss) do
+  --       sleep 1
+  --       loop mss
   delayedChunks 100 1 $
     S.inspect
       >=> either
@@ -79,7 +95,7 @@ deleteManyMessagesInBulks c =
         (return . (Right () S.:>))
         \(m S.:> ms) ->
           S.toList ms
-            >>= firstA \case
+            >>= S.firstA \case
               [] -> invoke $ DeleteMessage c m
               (m' : ms'') -> invoke $ BulkDeleteMessages c (m : m' : ms'')
 
@@ -95,7 +111,7 @@ deleteManyMessagesOneByOne c =
   -- TODO: don't think sleeping every 100 deletions is necessary here, discord.py does it
   delayedChunks 100 1 $
     S.mapM (invoke . DeleteMessage c)
-      >>> L.purely S.fold firstLeft
+      >>> L.purely S.fold S.firstLeft
 
 delayedChunks ::
   (Monoid b, MonadIO m) =>
@@ -108,10 +124,7 @@ delayedChunks chunkSize delay processChunk s =
   s & S.chunksOf chunkSize
     & S.mapped processChunk
     & S.delay delay
-    & L.purely S.fold firstLeft
-
-intersperseDelays :: (P.Embed IO :> r, Monoid b) => Int -> [P.Sem r (Either a b)] -> [P.Sem r (Either a b)]
-intersperseDelays delay = intersperse (P.embed (threadDelay delay) $> Right mempty)
+    & L.purely S.fold S.firstLeft
 
 youngerThan :: forall t a. HasID t a => NominalDiffTime -> UTCTime -> a -> Bool
 youngerThan diffTime now =
@@ -140,22 +153,3 @@ utcToUnix t = round (diffUTCTime t unixEpoch)
 
 unixEpoch :: UTCTime
 unixEpoch = UTCTime (fromGregorian 1970 1 1) (secondsToDiffTime 0)
-
-firstLeftWith :: (c -> b -> c) -> c -> L.Fold (Either a b) (Either a c)
-firstLeftWith cat zero = L.Fold (either (const . Left) (fmap . cat)) (Right zero) identity
-
-firstLeft :: Monoid b => L.Fold (Either a b) (Either a b)
-firstLeft = firstLeftWith (<>) mempty
-
-firstA :: (Bitraversable t, Applicative f) => (a -> f c) -> t a b -> f (t c b)
-firstA f = bitraverse f pure
-
-secondA :: (Bitraversable t, Applicative f) => (b -> f d) -> t a b -> f (t a d)
-secondA = bitraverse pure
-
-ofFold1 :: Semigroup a => S.Of a (S.Of a b) -> S.Of a b
-ofFold1 (x S.:> (x' S.:> y)) = (x <> x') S.:> y
-
--- TODO contribute
-inspectNE :: NES.NEStream f m r -> f (S.Stream f m r)
-inspectNE (NES.NEStream s) = s
