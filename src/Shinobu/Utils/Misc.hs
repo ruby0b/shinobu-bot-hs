@@ -2,7 +2,6 @@ module Shinobu.Utils.Misc where
 
 import Calamity
 import Calamity.Commands (help)
-import Calamity.Types.LogEff (LogEff)
 import Control.Concurrent (threadDelay)
 import qualified Data.Colour as Colour
 import qualified Data.Colour.Names as Colour
@@ -166,3 +165,13 @@ readFileTextP fp =
 
 sleep :: MonadIO m => Double -> m ()
 sleep seconds = liftIO $ threadDelay $ truncate (seconds * 1_000_000)
+
+p = P.debug @Text . show
+
+p' = P.debug @Text
+
+debug = P.debug @Text
+
+info = P.info @Text
+
+warning = P.warning @Text

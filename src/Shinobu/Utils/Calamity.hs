@@ -2,7 +2,6 @@ module Shinobu.Utils.Calamity where
 
 import Calamity
 import Calamity.Metrics.Eff
-import Calamity.Types.LogEff
 import qualified Control.Foldl as L
 import Data.Bits (shiftL, shiftR)
 import Data.Time (NominalDiffTime, UTCTime (..), addUTCTime, diffUTCTime, fromGregorian, getCurrentTime, secondsToDiffTime)

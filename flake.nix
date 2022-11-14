@@ -19,7 +19,7 @@
             (final: prev: {
               shinobu-bot = final.haskell-nix.project' rec {
                 src = ./.;
-                compiler-nix-name = "ghc923"; # got a segfault with ghc8107 ?!
+                compiler-nix-name = "ghc924"; # got a segfault with ghc8107 ?!
                 shell = {
                   tools = {
                     cabal = { };
