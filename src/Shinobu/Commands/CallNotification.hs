@@ -29,6 +29,7 @@ voiceChannelMembers voiceChannel = do
       memberFromVoiceState = P.note "Failed to get Member" <=< memberFromUID . view #userID
   res <- getGuild guildID
   guild <- P.note "Failed to get Guild" res
+  p $ guild ^. #voiceStates
   mapM memberFromVoiceState (guild ^. #voiceStates)
 
 type VcToTc = Map (Snowflake VoiceChannel) (NonEmpty (Integer, Snowflake TextChannel))
@@ -49,7 +50,7 @@ callReaction = void
     react @'VoiceStateUpdateEvt
       \(mBefore, after) -> void $
         P.runNonDetMaybe $ stringErrorToFail do
-          P.debug @Text $ show mBefore
+          p mBefore
           p after
           assertReady
           p' "Ready"
@@ -75,7 +76,7 @@ callReaction = void
           p' "Success!"
           user <- justZ =<< upgrade (after ^. #userID)
           for_ textChannels \(_, tc) ->
-            tellInfo tc [i|#{mention user} started a call.|]
+            tellInfo tc [i|#{mention user} started a call in #{mention afterID}.|]
 
           setCooldown 5
 
