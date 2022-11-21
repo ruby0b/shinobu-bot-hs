@@ -18,7 +18,7 @@ type ShinobuC r =
     GachaStores :>> r,
     [ P.Fail,
       P.Resource,
-      P.Mask P.Restoration,
+      P.Mask,
       RandomFu,
       Cooldown,
       SQLite

@@ -101,8 +101,8 @@ keyStoreToCache (putIO, deleteIO, clearIO) sem =
     Clear -> C.modify $ const clearIO
 
 runKeyStoreAsDBCache ::
-  forall c k v a res1 r.
-  ([DB.SQLite, P.Sync c, P.Mask res1, P.Resource] :>> r, KeyStoreC c k v) =>
+  forall c k v a r.
+  ([DB.SQLite, P.Sync c, P.Mask, P.Resource] :>> r, KeyStoreC c k v) =>
   (SQL.Connection -> IO c) ->
   (k -> v -> SQL.Connection -> IO ()) ->
   (k -> SQL.Connection -> IO ()) ->

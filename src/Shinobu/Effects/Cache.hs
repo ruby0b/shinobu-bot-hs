@@ -20,8 +20,8 @@ data Cache m v :: P.Effect where
 P.makeSem ''Cache
 
 runCacheSync ::
-  forall a v res r.
-  [P.Sync v, P.Mask res, P.Resource] :>> r =>
+  forall a v r.
+  [P.Sync v, P.Mask, P.Resource] :>> r =>
   P.Sem r v ->
   P.Sem (Cache (P.Sem r) v : r) a ->
   P.Sem r a
@@ -31,7 +31,7 @@ runCacheSync reloadIO sem = do
     Get -> P.block
     Modify f -> P.modify $
       const $
-        P.mask @res do
+        P.mask do
           a <- P.raise reloadIO
           r <- P.restore (P.raise (f a)) `P.onException` P.raise reloadIO
           a' <- P.raise reloadIO
@@ -45,8 +45,8 @@ runCacheSync reloadIO sem = do
     Reload -> P.modify_ $ const reloadIO
 
 runCacheDB ::
-  forall a v res r.
-  [DB.SQLite, P.Sync v, P.Mask res, P.Resource] :>> r =>
+  forall a v r.
+  [DB.SQLite, P.Sync v, P.Mask, P.Resource] :>> r =>
   (SQL.Connection -> IO v) ->
   P.Sem (Cache (P.Sem r) v : r) a ->
   P.Sem r a
