@@ -18,7 +18,7 @@ import Optics (to, view, (%), (%?), (%~), (.~), (?~), (^.))
 import Optics.TH
 import qualified Polysemy as P
 import Relude hiding (group)
-import Witch (from, into)
+import Witch (From (from), TryFrom (tryFrom), TryFromException (..), into, tryInto)
 
 default (Text)
 
