@@ -63,7 +63,7 @@ codeP =
     Left inlineCode_ -> Code "" (inlineCode_ ^. #code)
     Right codeBlock_ -> Code (codeBlock_ ^. #lang) (codeBlock_ ^. #code)
 
-newtype TimeSpan = TimeSpan {fromTimeSpan :: NominalDiffTime}
+newtype TimeSpan = TimeSpan {diffTime :: NominalDiffTime}
   deriving newtype (Num)
   deriving stock (Show, Generic)
 
@@ -81,7 +81,8 @@ timeP =
       (* (7 * 24 * 60 * 60)) <$> decimal <* chunk "d"
     ]
 
-newtype RegExp = RegExp {getTDFA :: TDFA.RE}
+newtype RegExp = RegExp {regex :: TDFA.RE}
+  deriving (Generic)
 
 instance (P.Embed IO :> r) => ParameterParser RegExp c r where
   parameterDescription = "POSIX regular expression"

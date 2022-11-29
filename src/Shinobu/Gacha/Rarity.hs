@@ -3,10 +3,15 @@ module Shinobu.Gacha.Rarity where
 import Data.Colour (Colour)
 import Data.Colour.Names (cyan, gold, grey, red)
 import qualified Data.Random.Distribution.Categorical as C
+import Database.SQLite.Simple
+import Database.SQLite.Simple.FromField
+import Database.SQLite.Simple.Ok
 import qualified Polysemy as P
 import qualified Polysemy.RandomFu as P
+import Relude.Extra (safeToEnum, typeName)
 import Shinobu.Gacha.Economy
 
+-- TODO rework the upgrade system entirely
 data RarityType = Common | Rare | Legendary | Godlike
   deriving (Show, Eq, Ord, Enum, Bounded)
 
@@ -15,6 +20,21 @@ data RarityVal = Basic | Plus
 
 data Rarity = Rarity RarityType RarityVal
   deriving (Show, Eq, Ord)
+
+fromFieldToBoundedEnum :: forall t. (Bounded t, Enum t, Typeable t) => Field -> Ok t
+fromFieldToBoundedEnum f =
+  fromField @Int f <&> safeToEnum >>= \case
+    Nothing -> returnError ConversionFailed f (toString (typeName @t) ++ " enum value out of range")
+    Just rt -> pure rt
+
+instance FromField RarityType where
+  fromField = fromFieldToBoundedEnum
+
+instance FromField RarityVal where
+  fromField = fromFieldToBoundedEnum
+
+instance FromRow Rarity where
+  fromRow = Rarity <$> field <*> field
 
 rarityColor :: Rarity -> Colour Double
 rarityColor (Rarity t _) = case t of

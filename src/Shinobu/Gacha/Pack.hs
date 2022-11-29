@@ -1,11 +1,15 @@
 module Shinobu.Gacha.Pack where
 
 import Data.Random.List (randomElement)
+import Data.Text (toLower)
 import Data.Time (Day)
 import Data.Time.Calendar.Julian (fromJulian)
+import Database.SQLite.Simple
+import Database.SQLite.Simple.QQ.Interpolated
 import qualified Polysemy as P
 import qualified Polysemy.Fail as P
 import qualified Polysemy.RandomFu as P
+import Shinobu.Effects.DB
 import Shinobu.Effects.IndexStore
 import Shinobu.Effects.UserError
 import Shinobu.Gacha.Character
@@ -23,9 +27,12 @@ data Pack = Pack
   }
   deriving (Show, Generic)
 
+instance FromRow Pack where
+  fromRow = Pack <$> field <*> field <*> field <*> field <*> field
+
 instance HasKey Pack where
   type Key Pack = Text
-  getKey = name
+  getKey = view #name
 
 type PackStore = IndexStore Pack
 
@@ -39,9 +46,14 @@ allPacks =
       }
   ]
 
-buyPack :: [P.Fail, UserError, P.RandomFu, UserStore] :>> r => Pack -> GachaUser -> P.Sem r ForcedWaifuGivingResult
+searchPack :: SQLite :> r => Text -> P.Sem r (Maybe Pack)
+searchPack name =
+  run [iquery|SELECT * FROM pack WHERE name LIKE ${toLower name}|]
+    <&> listToMaybe
+
+buyPack :: [P.Fail, UserError, P.RandomFu, UserStore, SQLite] :>> r => Pack -> GachaUser -> P.Sem r ForcedWaifuGivingResult
 buyPack pack buyer = do
-  removeMoney buyer (pack ^. #cost) & intoUserError
+  removeMoney (buyer ^. #uId) (pack ^. #cost) & intoUserError
   waifu <- sampleWaifu pack
   forceGiveWaifu buyer waifu
 

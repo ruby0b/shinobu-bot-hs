@@ -8,6 +8,8 @@ data DB m c :: P.Effect where
 
 P.makeSem ''DB
 
+-- TODO use smth like (Reader Connection) everywhere and wrap locked blocks in withConnection somehow
+
 type SQLite = DB IO SQL.Connection
 
 runSqliteSimple :: P.Embed IO :> r => String -> P.Sem (DB IO SQL.Connection : r) a -> P.Sem r a

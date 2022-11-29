@@ -23,7 +23,7 @@ charEmbed c =
 
 waifuEmbed :: Waifu -> Embed
 waifuEmbed w =
-  charEmbed (char w)
+  charEmbed (w ^. #char)
     & #color ?~ (w ^. #rarity & rarityColor)
     & #description ?~ [i|**#{w ^. #rarity & rarityName}**|]
 

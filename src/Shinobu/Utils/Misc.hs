@@ -36,6 +36,12 @@ handleFailByLogging =
     Left e -> P.error (fromString e)
     _ -> return ()
 
+handleExceptionByLogging :: forall e r a. (LogEff :> r, Exception e) => P.Sem (P.Error e : r) a -> P.Sem r ()
+handleExceptionByLogging =
+  P.runError >=> \case
+    Left e -> P.error (displayException e)
+    _ -> return ()
+
 fromRightM :: Applicative f => (a -> f b) -> Either a b -> f b
 fromRightM = flip either pure
 
@@ -175,3 +181,13 @@ debug = P.debug @Text
 info = P.info @Text
 
 warning = P.warning @Text
+
+newtype RegexCompilationException = RegexCompilationException Text
+  deriving stock (Show)
+  deriving anyclass (Exception)
+
+tryFromWrapExc :: (Bifunctor p, Exception e) => source -> p e c -> p (TryFromException source target) c
+tryFromWrapExc src = first $ TryFromException src . Just . SomeException
+
+compileRegexExc :: (Bifunctor p, MonadFail (p Text)) => String -> p RegexCompilationException TDFA.RE
+compileRegexExc = first RegexCompilationException . TDFA.compileRegex

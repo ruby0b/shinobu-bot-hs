@@ -32,11 +32,11 @@ purgeCmd = void do
         ]
       "purge"
       ["pu"]
-    $ \ctx timeOrLimit authors (fmap getTDFA -> mRegex) ->
-      runErrorTellEmbed @RestError ctx $ P.runNonDetMaybe do
+    $ \ctx timeOrLimit authors (fmap (view #regex) -> mRegex) ->
+      tellMyErrors ctx $ P.runNonDetMaybe do
         let (limit, timeSpan) = case timeOrLimit of
-              Left timeSpan' -> (100, fromTimeSpan timeSpan')
-              Right limit' -> (limit', fromTimeSpan $ 7 * 24 * 60 * 60)
+              Left timeSpan' -> (100, timeSpan' ^. #diffTime)
+              Right limit' -> (limit', (7 * 24 * 60 * 60 :: TimeSpan) ^. #diffTime)
         now <- P.embed getCurrentTime
         let regex = mRegex // [re|.*|]
         let estimate =

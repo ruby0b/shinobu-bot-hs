@@ -4,6 +4,7 @@ import Calamity
 import Calamity.Commands
 import Data.Random (stdUniform)
 import qualified Polysemy.RandomFu as P
+import Shinobu.Effects.UserError
 import Shinobu.Gacha.User (allUserIds, getOrCreateUser)
 import Shinobu.Utils.Misc
 import Shinobu.Utils.Types
@@ -42,7 +43,7 @@ miscCommands = void do
 
   help_ "add a user"
     . command @'[Named "user" User] "add-user"
-    $ \ctx user -> void do
+    $ \ctx user -> tellMyErrors ctx do
       getOrCreateUser . fromSnowflake . view #id $ user
       tellInfo ctx [i|Successfully added #{mention user} ✔️|]
 

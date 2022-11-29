@@ -2,11 +2,9 @@ module Shinobu.Commands.Shop where
 
 import Calamity
 import CalamityCommands (Named, command)
-import Data.Sequences (toLower)
-import qualified Polysemy as P
-import Shinobu.Effects.IndexStore
 import Shinobu.Effects.UserError
 import Shinobu.Gacha
+import Shinobu.Utils.DB ()
 import Shinobu.Utils.Misc
 import Shinobu.Utils.Types
 
@@ -24,15 +22,12 @@ handlePackBuyResult = \case
   NewWaifu new ->
     waifuEmbed (new ^. #waifu)
 
-searchPack :: PackStore :> r => Text -> P.Sem r (Maybe Pack)
-searchPack name = listI <&> find \pack -> toLower (pack ^. #name) == toLower name
-
 packCmd :: ShinobuSem r
 packCmd = void $
   help_ "Buy a pack with the given name. List all currently available packs if given no"
     . command @'[Named "pack name" (Maybe Text)] "pack"
     $ \ctx ->
-      runUserErrorTellEmbed ctx . \case
+      tellMyErrors ctx . \case
         Just packName -> void do
           pack <- searchPack packName >>= maybeThrow [i|There's no pack named #{packName}!|]
           user <- getOrCreateUser . fromSnowflake . view #id . view #user $ ctx

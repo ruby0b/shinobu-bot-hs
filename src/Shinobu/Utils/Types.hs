@@ -5,11 +5,13 @@ import Calamity.Commands (DSLC)
 import Calamity.Commands.Context (FullContext)
 import qualified Polysemy as P
 import qualified Polysemy.Conc as P
+import qualified Polysemy.Error as P
 import qualified Polysemy.Fail as P
 import Polysemy.RandomFu (RandomFu)
 import qualified Polysemy.Resource as P
 import Shinobu.Effects.Cooldown (Cooldown)
 import Shinobu.Effects.DB (SQLite)
+import Shinobu.Effects.UserError (SomeShinobuException)
 import Shinobu.Gacha.DB (GachaStores)
 
 type ShinobuC r =
@@ -21,7 +23,8 @@ type ShinobuC r =
       P.Mask,
       RandomFu,
       Cooldown,
-      SQLite
+      SQLite,
+      P.Error SomeShinobuException
     ]
       :>> r
   )
