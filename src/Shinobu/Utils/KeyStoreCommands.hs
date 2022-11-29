@@ -3,7 +3,7 @@ module Shinobu.Utils.KeyStoreCommands where
 import Calamity.Commands
 import Calamity.Commands.Context (FullContext)
 import qualified Polysemy as P
-import qualified Shinobu.Effects.KeyStore as Id
+import qualified Shinobu.Effects.CachedState as CS
 import Shinobu.Utils.Misc
 import Shinobu.Utils.Types
 
@@ -35,30 +35,39 @@ data KeyStoreSpec = KeyStoreSpec
 --         id_ <- Id.insertNewKey val
 --         tellSuccess ctx (showItem id_ val)
 
+type Key = Text
+
+genIds :: Foldable f => f a -> f (Key, a)
+genIds = undefined
+
+deleteByGenId :: Key -> [a] -> Maybe a
+deleteByGenId = undefined
+
 mkListCommand ::
-  (ShinobuC r, Id.KeyStore k v :> r) =>
+  (ShinobuC r, CS.CachedState [a] :> r) =>
   KeyStoreSpec ->
-  (k -> v -> Text) ->
+  (Key -> a -> Text) ->
   P.Sem r (Command FullContext)
 mkListCommand spec showItem =
   help_ [i|List all #{spec ^. #itemPlural}|]
     . command @'[] "list"
     $ \ctx -> void do
-      items <- Id.listKeyValuePairs
+      items <- CS.cached
       if null items
         then tellInfo ctx [i|No automatic responses exist. Use #{fmtCmd "response add"} to add one.|]
-        else tellInfo ctx $ unlines $ items <&> uncurry showItem
+        else tellInfo ctx $ unlines $ genIds items <&> uncurry showItem
 
 mkDeleteCommand ::
-  forall kp k v r.
-  (ShinobuC r, Id.KeyStore k v :> r, ParameterParser kp FullContext r, ParserResult kp ~ k) =>
+  forall a r.
+  (ShinobuC r, CS.CachedState [a] :> r, ParameterParser Key FullContext r) =>
   KeyStoreSpec ->
-  (k -> v -> Text) ->
+  (Key -> a -> Text) ->
   P.Sem r (Command FullContext)
 mkDeleteCommand spec showItem = help_ [i|Delete an #{spec ^. #itemSingular}|]
-  . commandA @'[Named "id" kp] "delete" ["remove", "rm"]
+  . commandA @'[Named "id" Key] "delete" ["remove", "rm"]
   $ \ctx id_ -> void do
-    Id.delete id_ >>= \case
+    items <- CS.cached
+    deleteByGenId id_ items & \case
       Nothing -> do
         tellError
           ctx
@@ -69,12 +78,12 @@ mkDeleteCommand spec showItem = help_ [i|Delete an #{spec ^. #itemSingular}|]
           [i|Successfully removed the following #{spec ^. #itemSingular}:\n#{showItem id_ val}|]
 
 mkReloadCommand ::
-  (ShinobuC r, Id.KeyStore k v :> r) =>
+  (ShinobuC r, CS.CachedState [a] :> r) =>
   KeyStoreSpec ->
   P.Sem r (Command FullContext)
 mkReloadCommand spec =
   help_ [i|Reload the #{spec ^. #itemSingular} database|]
     . command @'[] "reload"
     $ \ctx -> void do
-      Id.reload
+      CS.read
       tellSuccess ctx [i|Successfully synchronized my #{spec ^. #itemSingular} cache with the database.|]

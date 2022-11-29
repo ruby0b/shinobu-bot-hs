@@ -6,21 +6,38 @@ import Calamity
 import Calamity.Cache.Eff
 import Calamity.Commands
 import Control.Error (justZ)
-import qualified Data.Map.Strict as M
-import Database.SQLite.Simple.QQ.Interpolated
-import qualified DiPolysemy as P
 import qualified Polysemy as P
 import qualified Polysemy.Error as P
 import qualified Polysemy.NonDet as P
-import qualified Shinobu.Effects.Cache as C
+import qualified Shinobu.Effects.CachedState as CS
 import Shinobu.Effects.Cooldown
-import qualified Shinobu.Effects.KeyStore as Id
 import Shinobu.Effects.UserError
 import Shinobu.Utils.Checks
 import Shinobu.Utils.DB ()
+import Shinobu.Utils.JSON
 import Shinobu.Utils.KeyStoreCommands
 import Shinobu.Utils.Misc
 import Shinobu.Utils.Types
+
+data CallNotificationJSON = CallNotificationJSON
+  { voiceChannel :: Word64,
+    textChannel :: Word64
+  }
+  deriving (Generic, Show)
+
+makeJSON ''CallNotificationJSON
+
+data CallNotification = CallNotification
+  { vc :: Snowflake VoiceChannel,
+    tc :: Snowflake TextChannel
+  }
+  deriving (Generic)
+
+instance TryFrom [CallNotificationJSON] [CallNotification] where
+  tryFrom = pure . map \j -> CallNotification (Snowflake (j ^. #voiceChannel)) (Snowflake (j ^. #textChannel))
+
+instance From [CallNotification] [CallNotificationJSON] where
+  from = map \n -> CallNotificationJSON (fromSnowflake (n ^. #vc)) (fromSnowflake (n ^. #tc))
 
 voiceChannelMembers :: (BotC r, P.Error String :> r) => VoiceChannel -> P.Sem r [Member]
 voiceChannelMembers voiceChannel = do
@@ -32,20 +49,10 @@ voiceChannelMembers voiceChannel = do
   p $ guild ^. #voiceStates
   mapM memberFromVoiceState (guild ^. #voiceStates)
 
-type VcToTc = Map (Snowflake VoiceChannel) (NonEmpty (Integer, Snowflake TextChannel))
-
-instance Id.KeyStoreC VcToTc Integer (Snowflake VoiceChannel, Snowflake TextChannel) where
-  toKVList = concatMap (\(vc, xs) -> toList $ fmap (\(id_, tc) -> (id_, (vc, tc))) xs) . M.toList
-  lookupK id_ = snd <.> find ((== id_) . fst) . Id.toKVList
-
 callReaction :: ShinobuSem r
 callReaction = void
   . runSyncInIO
-  . Id.runKeyStoreAsDBCache @VcToTc @Integer @(Snowflake VoiceChannel, Snowflake TextChannel)
-    (M.fromAscList . indexByFst . map (\(x, y, z) -> (y, x, z)) <.> [iquery|SELECT * FROM voice_to_text|])
-    (\id_ (vc, tc) -> [iexecute|INSERT OR REPLACE INTO voice_to_text VALUES (${id_}, ${vc}, ${tc})|])
-    (\id_ -> [iexecute|DELETE FROM voice_to_text WHERE id=${id_}|])
-    [iexecute|DELETE FROM voice_to_text|]
+  . CS.runCachedStateAsJsonFileVia' @[CallNotificationJSON] "data/call-notifications.json"
   $ do
     react @'VoiceStateUpdateEvt
       \(mBefore, after) -> void $
@@ -72,11 +79,11 @@ callReaction = void
 
           -- send the reaction
           p' "Getting mapped VC..."
-          textChannels <- justZ . M.lookup afterID =<< C.get
+          textChannels <- guarded (not . null) . map (view #tc) . filter (\n -> n ^. #vc == afterID) =<< CS.cached @[CallNotification]
           p' "Success!"
           user <- justZ =<< upgrade (after ^. #userID)
-          for_ textChannels \(_, tc) ->
-            tellInfo tc [i|#{mention user} started a call in #{mention afterID}.|]
+          for_ textChannels \vc_ ->
+            tellInfo vc_ [i|#{mention user} started a call in #{mention afterID}.|]
 
           setCooldown 5
 
@@ -88,16 +95,16 @@ callReaction = void
       $ do
         help_ [i|Add a new #{spec ^. #itemSingular}|]
           . command @'[Named "Voice Channel ID" (Snowflake VoiceChannel), Named "Text Channel ID" (Snowflake TextChannel)] "add"
-          $ \ctx vcId tcId -> runUserErrorTellEmbed ctx do
+          $ \ctx vcId tcId -> tellMyErrors ctx do
             upgrade vcId >>= maybeThrow [i|Invalid Voice Channel: #{vcId}|]
             upgrade tcId >>= maybeThrow [i|Invalid Text Channel: #{tcId}|]
-            Id.insertNewKey (vcId, tcId)
+            CS.modify_ (CallNotification vcId tcId :)
             tellSuccess ctx [i|Understood!\nI will notify the channel #{mention tcId} whenever a call is started in #{mention vcId}|]
 
-        mkListCommand spec \id_ (vc, tc) ->
+        mkListCommand spec \id_ CallNotification {..} ->
           [i|#{id_}: #{mention vc} 📢 #{mention tc}|]
 
-        mkDeleteCommand @Integer spec \_id (vc, tc) ->
+        mkDeleteCommand spec \_id CallNotification {..} ->
           [i|#{mention vc} 📢 #{mention tc}|]
 
         mkReloadCommand spec

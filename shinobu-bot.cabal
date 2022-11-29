@@ -21,6 +21,7 @@ executable shinobu-bot
     Shinobu.Commands.RemoteSQL
     Shinobu.Commands.Shop
     Shinobu.Effects.Cache
+    Shinobu.Effects.CachedState
     Shinobu.Effects.Cooldown
     Shinobu.Effects.DB
     Shinobu.Effects.IndexStore
@@ -38,6 +39,7 @@ executable shinobu-bot
     Shinobu.Utils.Calamity
     Shinobu.Utils.Checks
     Shinobu.Utils.DB
+    Shinobu.Utils.JSON
     Shinobu.Utils.KeyStoreCommands
     Shinobu.Utils.Misc
     Shinobu.Utils.Parsers
@@ -45,8 +47,10 @@ executable shinobu-bot
     Shinobu.Utils.Types
 
   build-depends:
-    , base                       >=4.14     && <5
+    , aeson                      >=2.0
+    , base                       >=4.14      && <5
     , boxes                      >=0.1.5
+    , bytestring                 >=0.10.12.0
     , calamity                   >=0.7.0.1
     , calamity-commands          >=0.4.0.0
     , clock                      >=0.8.3
@@ -64,10 +68,12 @@ executable shinobu-bot
     , polysemy-conc              >=0.10.0.0
     , polysemy-plugin            >=0.4.3.1
     , polysemy-RandomFu          >=0.5.0.0
+    , polysemy-zoo               >=0.8.1.0
     , random                     >=1.2.1.1
     , random-fu                  >=0.3.0.0
     , regex                      >=1.1.0.1
     , relude                     >=1.0
+    , split                      >=0.2.3.5
     , sqlite-simple              >=0.4.18.0
     , sqlite-simple-interpolate  >=0.1
     , stm                        >=2.5.0.2
@@ -78,6 +84,7 @@ executable shinobu-bot
     , time                       >=1.9.2
     , vector                     >=0.12.0.0
     , witch                      >=1.0.0.2
+    , yaml                       >=0.11.8.0
 
   mixins:             base hiding (Prelude)
   default-extensions:
