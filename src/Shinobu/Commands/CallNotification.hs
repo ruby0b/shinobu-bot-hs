@@ -8,7 +8,6 @@ import Calamity.Commands
 import Control.Error (justZ)
 import qualified Data.Map.Strict as M
 import Database.SQLite.Simple.QQ.Interpolated
-import qualified DiPolysemy as P
 import qualified Polysemy as P
 import qualified Polysemy.Error as P
 import qualified Polysemy.NonDet as P
@@ -22,7 +21,7 @@ import Shinobu.Utils.KeyStoreCommands
 import Shinobu.Utils.Misc
 import Shinobu.Utils.Types
 
-voiceChannelMembers :: (BotC r, P.Error String :> r) => VoiceChannel -> P.Sem r [Member]
+voiceChannelMembers :: (BotC r, DiscordError :> r) => VoiceChannel -> P.Sem r [Member]
 voiceChannelMembers voiceChannel = do
   let guildID = view #guildID voiceChannel
       memberFromUID = upgrade . (guildID,) . coerceSnowflake
@@ -48,8 +47,10 @@ callReaction = void
     [iexecute|DELETE FROM voice_to_text|]
   $ do
     react @'VoiceStateUpdateEvt
-      \(mBefore, after) -> void $
-        P.runNonDetMaybe $ stringErrorToFail do
+      \(mBefore, after) -> void
+        . handleExceptionByLogging @DiscordErr
+        . P.runNonDetMaybe
+        $ do
           p mBefore
           p after
           assertReady
