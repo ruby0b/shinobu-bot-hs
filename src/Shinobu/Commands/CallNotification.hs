@@ -14,9 +14,9 @@ import qualified Polysemy.NonDet as P
 import qualified Shinobu.Effects.Cache as C
 import Shinobu.Effects.Cooldown
 import qualified Shinobu.Effects.KeyStore as Id
-import Shinobu.Effects.UserError
 import Shinobu.Utils.Checks
 import Shinobu.Utils.DB ()
+import Shinobu.Utils.Error
 import Shinobu.Utils.KeyStoreCommands
 import Shinobu.Utils.Misc
 import Shinobu.Utils.Types

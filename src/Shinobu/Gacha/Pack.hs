@@ -11,12 +11,12 @@ import qualified Polysemy.Fail as P
 import qualified Polysemy.RandomFu as P
 import Shinobu.Effects.DB
 import Shinobu.Effects.IndexStore
-import Shinobu.Effects.UserError
 import Shinobu.Gacha.Character
 import Shinobu.Gacha.Economy
 import Shinobu.Gacha.Rarity
 import Shinobu.Gacha.User
 import Shinobu.Gacha.Waifu
+import Shinobu.Utils.Error
 
 data Pack = Pack
   { name :: Text,

@@ -4,8 +4,8 @@ import Calamity
 import Calamity.Commands
 import Data.Random (stdUniform)
 import qualified Polysemy.RandomFu as P
-import Shinobu.Effects.UserError
 import Shinobu.Gacha.User (allUserIds, getOrCreateUser)
+import Shinobu.Utils.Error
 import Shinobu.Utils.Misc
 import Shinobu.Utils.Types
 

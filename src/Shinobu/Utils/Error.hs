@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Shinobu.Effects.UserError where
+module Shinobu.Utils.Error where
 
 import Calamity
 import qualified Polysemy as P

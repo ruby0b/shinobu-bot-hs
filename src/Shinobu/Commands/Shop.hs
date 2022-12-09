@@ -2,9 +2,9 @@ module Shinobu.Commands.Shop where
 
 import Calamity
 import CalamityCommands (Named, command)
-import Shinobu.Effects.UserError
 import Shinobu.Gacha
 import Shinobu.Utils.DB ()
+import Shinobu.Utils.Error
 import Shinobu.Utils.Misc
 import Shinobu.Utils.Types
 

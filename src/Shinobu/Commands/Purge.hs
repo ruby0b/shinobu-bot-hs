@@ -6,9 +6,9 @@ import qualified Control.Foldl as L
 import Data.Time (getCurrentTime)
 import qualified Polysemy as P
 import qualified Polysemy.NonDet as P
-import Shinobu.Effects.UserError
 import Shinobu.Utils.Calamity
 import Shinobu.Utils.Checks
+import Shinobu.Utils.Error
 import Shinobu.Utils.Misc
 import Shinobu.Utils.Parsers
 import qualified Shinobu.Utils.Streaming as S

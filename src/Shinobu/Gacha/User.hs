@@ -7,8 +7,8 @@ import qualified Polysemy as P
 import qualified Polysemy.Error as P
 import Shinobu.Effects.DB (SQLite, run)
 import Shinobu.Effects.IndexStore
-import Shinobu.Effects.UserError
 import Shinobu.Gacha.Economy
+import Shinobu.Utils.Error
 import Shinobu.Utils.Misc
 
 data GachaUser = GachaUser

@@ -3,11 +3,11 @@ module Shinobu.Gacha.Waifu where
 import qualified Polysemy as P
 import qualified Polysemy.Fail as P
 import Shinobu.Effects.IndexStore
-import Shinobu.Effects.UserError
 import Shinobu.Gacha.Character
 import Shinobu.Gacha.Economy
 import Shinobu.Gacha.Rarity
 import Shinobu.Gacha.User
+import Shinobu.Utils.Error
 import Shinobu.Utils.Misc
 
 data Waifu = Waifu
