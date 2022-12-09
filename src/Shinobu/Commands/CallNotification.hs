@@ -88,7 +88,7 @@ callReaction = void
       $ do
         help_ [i|Add a new #{spec ^. #itemSingular}|]
           . command @'[Named "Voice Channel ID" (Snowflake VoiceChannel), Named "Text Channel ID" (Snowflake TextChannel)] "add"
-          $ \ctx vcId tcId -> runUserErrorTellEmbed ctx do
+          $ \ctx vcId tcId -> tellMyErrors ctx do
             upgrade vcId >>= maybeThrow [i|Invalid Voice Channel: #{vcId}|]
             upgrade tcId >>= maybeThrow [i|Invalid Text Channel: #{tcId}|]
             Id.insertNewKey (vcId, tcId)

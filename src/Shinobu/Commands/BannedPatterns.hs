@@ -49,7 +49,7 @@ bannedPatterns = void
       $ do
         help_ [i|Add a new #{spec ^. #itemSingular}|]
           . command @'[Named "pattern to match" RegExp] "add"
-          $ \ctx (getTDFA -> regex) -> void do
+          $ \ctx (view #regex -> regex) -> void do
             Id.insertNewKey regex
             tellSuccess ctx [i|Understood!\nI will now delete messages matching the pattern #{fmtTDFA regex}|]
 
