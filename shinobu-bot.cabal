@@ -12,7 +12,6 @@ executable shinobu-bot
   -- cabal-fmt: expand src -Main
   other-modules:
     Prelude
-    Shinobu.Commands.BannedPatterns
     Shinobu.Commands.CallNotification
     Shinobu.Commands.CustomReactions
     Shinobu.Commands.ErrorHandling

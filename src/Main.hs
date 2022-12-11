@@ -15,7 +15,6 @@ import qualified Polysemy as P
 import qualified Polysemy.Conc as P
 import qualified Polysemy.RandomFu as P
 import qualified Polysemy.Resource as P
-import Shinobu.Commands.BannedPatterns
 import Shinobu.Commands.CallNotification
 import Shinobu.Commands.CustomReactions
 import Shinobu.Commands.ErrorHandling
@@ -58,7 +57,6 @@ main = do
       customReactions
       callReaction
       tellErrors
-      bannedPatterns
       remoteSQLCmd
       purgeCmd
       spamCmd
