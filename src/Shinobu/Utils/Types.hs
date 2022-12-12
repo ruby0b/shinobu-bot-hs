@@ -10,7 +10,7 @@ import qualified Polysemy.Fail as P
 import Polysemy.RandomFu (RandomFu)
 import qualified Polysemy.Resource as P
 import Shinobu.Effects.Cooldown (Cooldown)
-import Shinobu.Effects.DB (SQLite)
+import Shinobu.Effects.DB (DB)
 import Shinobu.Gacha.DB (GachaStores)
 import Shinobu.Utils.Error (SomeShinobuException)
 
@@ -23,7 +23,7 @@ type ShinobuC r =
       P.Mask,
       RandomFu,
       Cooldown,
-      SQLite,
+      DB,
       P.Error SomeShinobuException
     ]
       :>> r

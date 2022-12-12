@@ -25,10 +25,10 @@ isAdminCtx ctx = do
           else Just "You have to be an administrator to use this command."
     _ -> pure $ Just "You can't use this command outside of a server."
 
-isBotOwnerCtx :: (BotC r, DB.SQLite :> r) => FullContext -> P.Sem r (Maybe Text)
+isBotOwnerCtx :: (BotC r, DB.DB :> r) => FullContext -> P.Sem r (Maybe Text)
 isBotOwnerCtx ctx = do
   let id_ = ctx ^. #user % #id
-  owners <- map SQL.fromOnly <$> DB.run [iquery|SELECT id FROM user WHERE is_owner|]
+  owners <- map SQL.fromOnly <$> DB.query [isql|SELECT id FROM user WHERE is_owner|]
   return
     if id_ `elem` owners
       then Nothing

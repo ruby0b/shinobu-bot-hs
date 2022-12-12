@@ -4,7 +4,7 @@ import Data.Random.List (randomElement)
 import Data.Text (toLower)
 import Data.Time (Day)
 import Data.Time.Calendar.Julian (fromJulian)
-import Database.SQLite.Simple
+import Database.SQLite.Simple (FromRow (..), field)
 import Database.SQLite.Simple.QQ.Interpolated
 import qualified Polysemy as P
 import qualified Polysemy.Fail as P
@@ -46,12 +46,12 @@ allPacks =
       }
   ]
 
-searchPack :: SQLite :> r => Text -> P.Sem r (Maybe Pack)
+searchPack :: DB :> r => Text -> P.Sem r (Maybe Pack)
 searchPack name =
-  run [iquery|SELECT * FROM pack WHERE name LIKE ${toLower name}|]
+  query [isql|SELECT * FROM pack WHERE name LIKE ${toLower name}|]
     <&> listToMaybe
 
-buyPack :: [P.Fail, UserError, P.RandomFu, UserStore, SQLite] :>> r => Pack -> GachaUser -> P.Sem r ForcedWaifuGivingResult
+buyPack :: [P.Fail, UserError, P.RandomFu, UserStore, DB] :>> r => Pack -> GachaUser -> P.Sem r ForcedWaifuGivingResult
 buyPack pack buyer = do
   removeMoney (buyer ^. #uId) (pack ^. #cost) & intoUserError
   waifu <- sampleWaifu pack

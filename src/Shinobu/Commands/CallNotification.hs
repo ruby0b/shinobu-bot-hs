@@ -6,13 +6,13 @@ import Calamity
 import Calamity.Cache.Eff
 import Calamity.Commands
 import Control.Error (justZ)
-import qualified Data.Map.Strict as M
 import Database.SQLite.Simple.QQ.Interpolated
 import qualified Polysemy as P
 import qualified Polysemy.Error as P
 import qualified Polysemy.NonDet as P
 import qualified Shinobu.Effects.Cache as C
 import Shinobu.Effects.Cooldown
+import Shinobu.Effects.DB
 import qualified Shinobu.Effects.KeyStore as Id
 import Shinobu.Utils.Checks
 import Shinobu.Utils.DB ()
@@ -31,20 +31,20 @@ voiceChannelMembers voiceChannel = do
   p $ guild ^. #voiceStates
   mapM memberFromVoiceState (guild ^. #voiceStates)
 
-type VcToTc = Map (Snowflake VoiceChannel) (NonEmpty (Integer, Snowflake TextChannel))
+type VcToTc = (Integer, Snowflake VoiceChannel, Snowflake TextChannel)
 
-instance Id.KeyStoreC VcToTc Integer (Snowflake VoiceChannel, Snowflake TextChannel) where
-  toKVList = concatMap (\(vc, xs) -> toList $ fmap (\(id_, tc) -> (id_, (vc, tc))) xs) . M.toList
+instance Id.KeyStoreC [VcToTc] Integer (Snowflake VoiceChannel, Snowflake TextChannel) where
+  toKVList = map \(id_, vc, tc) -> (id_, (vc, tc))
   lookupK id_ = snd <.> find ((== id_) . fst) . Id.toKVList
 
 callReaction :: ShinobuSem r
 callReaction = void
   . runSyncInIO
   . Id.runKeyStoreAsDBCache @VcToTc @Integer @(Snowflake VoiceChannel, Snowflake TextChannel)
-    (M.fromAscList . indexByFst . map (\(x, y, z) -> (y, x, z)) <.> [iquery|SELECT * FROM voice_to_text|])
-    (\id_ (vc, tc) -> [iexecute|INSERT OR REPLACE INTO voice_to_text VALUES (${id_}, ${vc}, ${tc})|])
-    (\id_ -> [iexecute|DELETE FROM voice_to_text WHERE id=${id_}|])
-    [iexecute|DELETE FROM voice_to_text|]
+    (query [isql|SELECT * FROM voice_to_text|])
+    (\id_ (vc, tc) -> [isql|INSERT OR REPLACE INTO voice_to_text VALUES (${id_}, ${vc}, ${tc})|])
+    (\id_ -> [isql|DELETE FROM voice_to_text WHERE id=${id_}|])
+    [isql|DELETE FROM voice_to_text|]
   $ do
     react @'VoiceStateUpdateEvt
       \(mBefore, after) -> void
@@ -59,9 +59,10 @@ callReaction = void
           afterID <- justZ (after ^. #channelID)
 
           -- make sure the user switched channels (or joined one)
-          whenJust mBefore \before -> do
-            whenJust (before ^. #channelID) \beforeID -> do
-              guard (beforeID /= afterID)
+          justZ do
+            before <- mBefore
+            beforeID <- before ^. #channelID
+            guard (beforeID /= afterID)
           p' "Switched channels"
 
           -- make sure the person joined an empty voice channel
@@ -73,10 +74,11 @@ callReaction = void
 
           -- send the reaction
           p' "Getting mapped VC..."
-          textChannels <- justZ . M.lookup afterID =<< C.get
-          p' "Success!"
+          config <- C.get
+          let textChannels = [t | (_, v, t) <- config, v == afterID]
+          p' [i|Success! (found #{length textChannels} entries)|]
           user <- justZ =<< upgrade (after ^. #userID)
-          for_ textChannels \(_, tc) ->
+          for_ textChannels \tc ->
             tellInfo tc [i|#{mention user} started a call in #{mention afterID}.|]
 
           setCooldown 5

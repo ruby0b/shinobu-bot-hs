@@ -2,9 +2,10 @@ module Shinobu.Commands.CustomReactions where
 
 import Calamity
 import Calamity.Commands
-import qualified Data.Map.Strict as M
-import qualified Database.SQLite.Simple as SQL
 import Database.SQLite.Simple.QQ.Interpolated
+import qualified Polysemy as P
+import qualified Polysemy.Fail as P
+import Shinobu.Effects.DB
 import qualified Shinobu.Effects.KeyStore as Id
 import Shinobu.Utils.Checks
 import Shinobu.Utils.KeyStoreCommands
@@ -13,12 +14,10 @@ import Shinobu.Utils.Parsers
 import Shinobu.Utils.Types
 import Text.RE.TDFA
 
-type PatternID = Integer
-
-queryReactions :: SQL.Connection -> IO (M.Map PatternID (RE, Text))
-queryReactions conn = do
-  rawList :: [(PatternID, String, Text)] <- conn & [iquery|SELECT * FROM regex_reactions|]
-  M.fromList <$> forM rawList \(id_, rawRE, response) -> do
+queryReactions :: [DB, P.Fail] :>> r => P.Sem r [(Integer, (RE, Text))]
+queryReactions = do
+  rawList :: [(Integer, String, Text)] <- query [isql|SELECT * FROM regex_reactions|]
+  forM rawList \(id_, rawRE, response) -> do
     regex <- compileRegex rawRE
     pure (id_, (regex, response))
 
@@ -27,9 +26,9 @@ customReactions = void
   . runSyncInIO
   . Id.runKeyStoreAsDBCache
     queryReactions
-    (\id_ (pattern_, response) -> [iexecute|INSERT OR REPLACE INTO regex_reactions VALUES (${id_}, ${reSource pattern_}, ${response})|])
-    (\id_ -> [iexecute|DELETE FROM regex_reactions WHERE id=${id_}|])
-    [iexecute|DELETE FROM regex_reactions|]
+    (\id_ (pattern_, response) -> [isql|INSERT OR REPLACE INTO regex_reactions VALUES (${id_}, ${reSource pattern_}, ${response})|])
+    (\id_ -> [isql|DELETE FROM regex_reactions WHERE id=${id_}|])
+    [isql|DELETE FROM regex_reactions|]
   $ do
     react @'MessageCreateEvt
       \(msg, _user, _member) -> do
