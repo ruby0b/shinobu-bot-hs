@@ -11,13 +11,11 @@ import Polysemy.RandomFu (RandomFu)
 import qualified Polysemy.Resource as P
 import Shinobu.Effects.Cooldown (Cooldown)
 import Shinobu.Effects.DB (DB)
-import Shinobu.Gacha.DB (GachaStores)
 import Shinobu.Utils.Error (SomeShinobuException)
 
 type ShinobuC r =
   ( BotC r,
     DSLC FullContext r,
-    GachaStores :>> r,
     [ P.Fail,
       P.Resource,
       P.Mask,

@@ -22,7 +22,7 @@ whenNotReady f =
     Ready -> return ()
     TimeLeft x -> f x
 
--- | Run f on the time left or do nothing if we're ready.
+-- | 'empty' if we're not  ready yet; do nothing if we are.
 assertReady :: [Cooldown, P.NonDet] :>> r => P.Sem r ()
 assertReady = whenNotReady $ const mzero
 

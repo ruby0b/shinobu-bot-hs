@@ -24,7 +24,6 @@ import Shinobu.Commands.RemoteSQL
 import Shinobu.Commands.Shop
 import Shinobu.Effects.Cooldown
 import qualified Shinobu.Effects.DB as DB
-import Shinobu.Gacha.DB
 import Shinobu.Utils.Error
 import Shinobu.Utils.Misc
 
@@ -42,7 +41,6 @@ main = do
     . P.interpretMaskFinal
     . DB.runSqliteSimple "shinobu.db"
     . runCooldownInIO
-    . runGachaStoresIO
     . handleFailByLogging
     . handleExceptionByLogging @SomeShinobuException
     . runCacheInMemory

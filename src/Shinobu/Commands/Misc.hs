@@ -14,7 +14,7 @@ miscCommands = void do
   help_ "Blame someone"
     . command @'[Named "user" (Maybe User)] "blame"
     $ \ctx maybeU -> void do
-      let blamed = maybeU // (ctx ^. #user)
+      let blamed = maybeU ?: (ctx ^. #user)
       let response :: Text = [i|Blame #{mention blamed} for everything!|]
       tell ctx response
 

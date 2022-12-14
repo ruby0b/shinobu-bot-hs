@@ -1,25 +1,31 @@
-{-# OPTIONS_GHC -Wno-orphans #-}
-
 module Shinobu.Commands.CallNotification where
 
 import Calamity
 import Calamity.Cache.Eff
 import Calamity.Commands
 import Control.Error (justZ)
-import Database.SQLite.Simple.QQ.Interpolated
 import qualified Polysemy as P
 import qualified Polysemy.Error as P
 import qualified Polysemy.NonDet as P
-import qualified Shinobu.Effects.Cache as C
+import Shinobu.Effects.Cache
 import Shinobu.Effects.Cooldown
 import Shinobu.Effects.DB
-import qualified Shinobu.Effects.KeyStore as Id
 import Shinobu.Utils.Checks
 import Shinobu.Utils.DB ()
 import Shinobu.Utils.Error
 import Shinobu.Utils.KeyStoreCommands
 import Shinobu.Utils.Misc
 import Shinobu.Utils.Types
+
+table = "voice_to_text"
+
+spec =
+  KeyStoreSpec
+    { tableName = table,
+      groupName = "ring",
+      itemSingular = "call notification",
+      itemPlural = "call notifications"
+    }
 
 voiceChannelMembers :: (BotC r, DiscordError :> r) => VoiceChannel -> P.Sem r [Member]
 voiceChannelMembers voiceChannel = do
@@ -33,18 +39,10 @@ voiceChannelMembers voiceChannel = do
 
 type VcToTc = (Integer, Snowflake VoiceChannel, Snowflake TextChannel)
 
-instance Id.KeyStoreC [VcToTc] Integer (Snowflake VoiceChannel, Snowflake TextChannel) where
-  toKVList = map \(id_, vc, tc) -> (id_, (vc, tc))
-  lookupK id_ = snd <.> find ((== id_) . fst) . Id.toKVList
-
 callReaction :: ShinobuSem r
 callReaction = void
   . runSyncInIO
-  . Id.runKeyStoreAsDBCache @VcToTc @Integer @(Snowflake VoiceChannel, Snowflake TextChannel)
-    (query [isql|SELECT * FROM voice_to_text|])
-    (\id_ (vc, tc) -> [isql|INSERT OR REPLACE INTO voice_to_text VALUES (${id_}, ${vc}, ${tc})|])
-    (\id_ -> [isql|DELETE FROM voice_to_text WHERE id=${id_}|])
-    [isql|DELETE FROM voice_to_text|]
+  . evalCacheViaState @[VcToTc] (query [isql|SELECT * FROM !{table}|])
   $ do
     react @'VoiceStateUpdateEvt
       \(mBefore, after) -> void
@@ -74,7 +72,7 @@ callReaction = void
 
           -- send the reaction
           p' "Getting mapped VC..."
-          config <- C.get
+          config <- cached
           let textChannels = [t | (_, v, t) <- config, v == afterID]
           p' [i|Success! (found #{length textChannels} entries)|]
           user <- justZ =<< upgrade (after ^. #userID)
@@ -83,8 +81,6 @@ callReaction = void
 
           setCooldown 5
 
-    let spec = KeyStoreSpec {groupName = "ring", itemSingular = "call notification", itemPlural = "call notifications"}
-
     help_ [i|Manage #{spec ^. #itemPlural}|]
       . requiresAdmin
       . group (spec ^. #groupName)
@@ -92,15 +88,16 @@ callReaction = void
         help_ [i|Add a new #{spec ^. #itemSingular}|]
           . command @'[Named "Voice Channel ID" (Snowflake VoiceChannel), Named "Text Channel ID" (Snowflake TextChannel)] "add"
           $ \ctx vcId tcId -> tellMyErrors ctx do
-            upgrade vcId >>= maybeThrow [i|Invalid Voice Channel: #{vcId}|]
-            upgrade tcId >>= maybeThrow [i|Invalid Text Channel: #{tcId}|]
-            Id.insertNewKey (vcId, tcId)
+            upgrade vcId >>?! P.throw [i|Invalid Voice Channel: #{vcId}|]
+            upgrade tcId >>?! P.throw [i|Invalid Text Channel: #{tcId}|]
+            execute [isql|INSERT INTO !{table} (voice_channel, text_channel) VALUES (${vcId}, ${tcId})|]
+            refresh
             tellSuccess ctx [i|Understood!\nI will notify the channel #{mention tcId} whenever a call is started in #{mention vcId}|]
 
-        mkListCommand spec \id_ (vc, tc) ->
+        mkListCommand spec \(id_, vc, tc) ->
           [i|#{id_}: #{mention vc} 📢 #{mention tc}|]
 
-        mkDeleteCommand @Integer spec \_id (vc, tc) ->
+        mkDeleteCommand @Integer @VcToTc spec \(_id, vc, tc) ->
           [i|#{mention vc} 📢 #{mention tc}|]
 
         mkReloadCommand spec

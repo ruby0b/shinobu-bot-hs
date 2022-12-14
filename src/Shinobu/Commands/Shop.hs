@@ -2,6 +2,7 @@ module Shinobu.Commands.Shop where
 
 import Calamity
 import CalamityCommands (Named, command)
+import qualified Polysemy.Error as P
 import Shinobu.Gacha
 import Shinobu.Utils.DB ()
 import Shinobu.Utils.Error
@@ -29,7 +30,7 @@ packCmd = void $
     $ \ctx ->
       tellMyErrors ctx . \case
         Just packName -> void do
-          pack <- searchPack packName >>= maybeThrow [i|There's no pack named #{packName}!|]
+          pack <- searchPack packName >>?! P.throw [i|There's no pack named #{packName}!|]
           user <- getOrCreateUser . fromSnowflake . view #id . view #user $ ctx
           embed <- handlePackBuyResult <$> buyPack pack user
           tell ctx embed

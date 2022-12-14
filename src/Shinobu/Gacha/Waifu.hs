@@ -2,7 +2,6 @@ module Shinobu.Gacha.Waifu where
 
 import qualified Polysemy as P
 import qualified Polysemy.Fail as P
-import Shinobu.Effects.IndexStore
 import Shinobu.Gacha.Character
 import Shinobu.Gacha.Economy
 import Shinobu.Gacha.Rarity
@@ -21,12 +20,6 @@ data OwnedWaifu = OwnedWaifu
     owner :: GachaUser
   }
   deriving (Show, Eq, Generic)
-
-instance HasKey OwnedWaifu where
-  type Key OwnedWaifu = (Key GachaUser, Key Character)
-  getKey ow = (ow ^. #owner % to getKey, ow ^. #waifu % #char % to getKey)
-
-type WaifuStore = IndexStore OwnedWaifu
 
 data ForcedWaifuGivingResult
   = NewRefunded Waifu OwnedWaifu Money

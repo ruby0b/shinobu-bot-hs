@@ -3,7 +3,7 @@ module Shinobu.Gacha.Embeds where
 import Calamity
 import Data.Colour.Names (gold)
 import qualified Polysemy as P
-import Shinobu.Effects.IndexStore
+import Shinobu.Effects.DB
 import Shinobu.Gacha.Character
 import Shinobu.Gacha.Economy
 import Shinobu.Gacha.Pack
@@ -27,9 +27,9 @@ waifuEmbed w =
     & #color ?~ (w ^. #rarity & rarityColor)
     & #description ?~ [i|**#{w ^. #rarity & rarityName}**|]
 
-allPacksEmbed :: PackStore :> r => P.Sem r Embed
+allPacksEmbed :: DB :> r => P.Sem r Embed
 allPacksEmbed = do
-  packs <- listI
+  packs <- listPacks
   return $
     packListEmbed packs
       & #color ?~ gold

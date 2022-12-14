@@ -38,7 +38,7 @@ purgeCmd = void do
               Left timeSpan' -> (100, timeSpan' ^. #diffTime)
               Right limit' -> (limit', (7 * 24 * 60 * 60 :: TimeSpan) ^. #diffTime)
         now <- P.embed getCurrentTime
-        let regex = mRegex // [re|.*|]
+        let regex = mRegex ?: [re|.*|]
         let estimate =
               if null authors && isNothing mRegex
                 then Just (min 100 (limit + 1))

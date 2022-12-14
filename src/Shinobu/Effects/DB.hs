@@ -1,7 +1,13 @@
-module Shinobu.Effects.DB where
+module Shinobu.Effects.DB
+  ( module Shinobu.Effects.DB,
+    module Database.SQLite.Simple.QQ.Interpolated,
+  )
+where
 
 import qualified Database.SQLite.Simple as SQL
+import Database.SQLite.Simple.QQ.Interpolated (isql)
 import qualified Polysemy as P
+import Shinobu.Utils.Error
 
 -- TODO use smth like (Reader Connection) everywhere and wrap locked blocks in withConnection somehow
 
@@ -16,6 +22,12 @@ P.makeSem ''DB
 -- more convenient type application
 query :: forall a r. (DB :> r, SQL.FromRow a) => IQuery -> P.Sem r [a]
 query = query__
+
+queryMap :: forall a b r. (DB :> r, SQL.FromRow a) => (a -> P.Sem r b) -> IQuery -> P.Sem r [b]
+queryMap f = mapM f <=< query
+
+queryVia :: forall a b r. (DB :> r, SQL.FromRow a, TryFromP a b r) => IQuery -> P.Sem r [b]
+queryVia = queryMap @a tryFromP
 
 query_ :: forall a r. (DB :> r, SQL.FromRow a) => SQL.Query -> P.Sem r [a]
 query_ = query . (,[])

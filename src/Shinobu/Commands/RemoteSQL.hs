@@ -20,7 +20,7 @@ remoteSQLCmd = void do
     . requiresOwner
     . command @'[Named "query" Code] "sql"
     $ \ctx queryCode -> void do
-      rows :: [[ShowField]] <- query_ (fromString $ toString $ queryCode ^. #code)
+      rows :: [[ShowField]] <- query_ (via @String $ queryCode ^. #code)
       if null rows
         then tellInfo ctx "Done! 0 rows were returned."
         else do

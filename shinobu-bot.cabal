@@ -22,11 +22,8 @@ executable shinobu-bot
     Shinobu.Effects.Cache
     Shinobu.Effects.Cooldown
     Shinobu.Effects.DB
-    Shinobu.Effects.IndexStore
-    Shinobu.Effects.KeyStore
     Shinobu.Gacha
     Shinobu.Gacha.Character
-    Shinobu.Gacha.DB
     Shinobu.Gacha.Economy
     Shinobu.Gacha.Embeds
     Shinobu.Gacha.Pack
@@ -68,7 +65,7 @@ executable shinobu-bot
     , regex                      >=1.1.0.1
     , relude                     >=1.0
     , sqlite-simple              >=0.4.18.0
-    , sqlite-simple-interpolate  >=0.1
+    , sqlite-simple-interpolate  >=0.1.1
     , stm                        >=2.5.0.2
     , streaming                  >=0.2.3.1
     , streaming-nonempty         >=0.1.0.0

@@ -3,14 +3,11 @@ module Shinobu.Gacha.Pack where
 import Data.Random.List (randomElement)
 import Data.Text (toLower)
 import Data.Time (Day)
-import Data.Time.Calendar.Julian (fromJulian)
 import Database.SQLite.Simple (FromRow (..), field)
-import Database.SQLite.Simple.QQ.Interpolated
 import qualified Polysemy as P
 import qualified Polysemy.Fail as P
 import qualified Polysemy.RandomFu as P
 import Shinobu.Effects.DB
-import Shinobu.Effects.IndexStore
 import Shinobu.Gacha.Character
 import Shinobu.Gacha.Economy
 import Shinobu.Gacha.Rarity
@@ -30,28 +27,15 @@ data Pack = Pack
 instance FromRow Pack where
   fromRow = Pack <$> field <*> field <*> field <*> field <*> field
 
-instance HasKey Pack where
-  type Key Pack = Text
-  getKey = view #name
-
-type PackStore = IndexStore Pack
-
-allPacks =
-  [ Pack
-      { name = "classic",
-        cost = UnsafeMoney 10,
-        description = "sample text idk",
-        start_date = fromJulian 2020 10 5,
-        end_date = Just $ fromJulian 2021 05 30
-      }
-  ]
+listPacks :: P.Member DB r => P.Sem r [Pack]
+listPacks = query [isql|SELECT * FROM pack|]
 
 searchPack :: DB :> r => Text -> P.Sem r (Maybe Pack)
 searchPack name =
   query [isql|SELECT * FROM pack WHERE name LIKE ${toLower name}|]
     <&> listToMaybe
 
-buyPack :: [P.Fail, UserError, P.RandomFu, UserStore, DB] :>> r => Pack -> GachaUser -> P.Sem r ForcedWaifuGivingResult
+buyPack :: [P.Fail, UserError, P.RandomFu, DB] :>> r => Pack -> GachaUser -> P.Sem r ForcedWaifuGivingResult
 buyPack pack buyer = do
   removeMoney (buyer ^. #uId) (pack ^. #cost) & intoUserError
   waifu <- sampleWaifu pack

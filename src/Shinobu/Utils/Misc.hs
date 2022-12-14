@@ -5,9 +5,6 @@ import Calamity.Commands (help)
 import Control.Concurrent (threadDelay)
 import qualified Data.Colour as Colour
 import qualified Data.Colour.Names as Colour
-import Data.Foldable (maximum)
-import qualified Data.List.NonEmpty as NE
-import qualified Data.Text.Encoding as T
 import qualified DiPolysemy as P
 import qualified Polysemy as P
 import qualified Polysemy.AtomicState as P
@@ -20,15 +17,41 @@ import System.Clock
 import qualified Text.RE.TDFA as TDFA
 
 class Foldable f => Optional f where
-  (//) :: f a -> a -> a
-  (//) = flip (foldr const)
-  infixr 1 //
+  (?:) :: f a -> a -> a
+  (?:) = flip (foldr const)
+  infixr 1 ?:
 
 instance Optional Maybe
 
 instance Optional (Either e)
 
 instance Optional []
+
+class Functor f => OptionalM f where
+  (?!) :: f a -> P.Sem r a -> P.Sem r a
+  infixr 1 ?!
+
+class Bifunctor p => BioptionalM p where
+  (?!>) :: p a b -> (a -> P.Sem r b) -> P.Sem r b
+  infixr 1 ?!>
+
+(>>?!) :: OptionalM f => P.Sem r (f a) -> P.Sem r a -> P.Sem r a
+m >>?! f = m >>= (?! f)
+
+infixr 1 >>?!
+
+instance OptionalM Maybe where
+  (?!) = whenNothing
+
+instance OptionalM [] where
+  (x : _) ?! _ = pure x
+  [] ?! m = m
+
+instance BioptionalM Either where
+  e ?!> f = either f pure e
+
+fromRightThrow :: P.Error e :> r => (a -> e) -> Either a b -> P.Sem r b
+fromRightThrow f = either (P.throw . f) pure
 
 handleFailByLogging :: LogEff :> r => P.Sem (P.Fail : r) a -> P.Sem r ()
 handleFailByLogging =
@@ -41,18 +64,6 @@ handleExceptionByLogging =
   P.runError >=> \case
     Left e -> P.error (displayException e)
     _ -> return ()
-
-fromRightM :: Applicative f => (a -> f b) -> Either a b -> f b
-fromRightM = flip either pure
-
-fromJustM :: Applicative f => f a -> Maybe a -> f a
-fromJustM = flip maybe pure
-
-maybeThrow :: forall e a r. P.Error e :> r => e -> Maybe a -> P.Sem r a
-maybeThrow = fromJustM . P.throw
-
-leftThrow :: forall e a b r. P.Error e :> r => (a -> e) -> Either a b -> P.Sem r b
-leftThrow leftToErr = fromRightM (P.throw . leftToErr)
 
 runAtomicStateNewTVarIO ::
   P.Embed IO :> r =>
@@ -101,26 +112,6 @@ fst3 (x, _, _) = x
 snd3 :: (a, b, c) -> b
 snd3 (_, y, _) = y
 
-shareFst :: NonEmpty (a, b, c) -> (a, NonEmpty (b, c))
-shareFst ts = (fst3 $ head ts,) $ (\(_, y, z) -> (y, z)) <$> ts
-
--- | return value is sorted by the first tuple element in ascending order
-indexByFst :: Ord a => [(a, b, c)] -> [(a, NonEmpty (b, c))]
-indexByFst = map shareFst . NE.groupBy ((==) `on` fst3) . sortOn fst3
-
-unsumEqWithRem :: Integral a => a -> a -> [a]
-unsumEqWithRem x y =
-  let (quotient, remainder) = x `divMod` y
-   in genericReplicate quotient y ++ [remainder]
-
-maximumOr :: (Ord p, Foldable f) => p -> f p -> p
-maximumOr defaultVal xs
-  | null xs = defaultVal
-  | otherwise = maximum xs
-
-firstJustM :: (Foldable t, Monad m) => t (m (Maybe a)) -> m (Maybe a)
-firstJustM = foldlM (fmap . (<|>)) Nothing
-
 whenNothingRun :: Monad m => Maybe a -> m b -> m (Maybe a)
 whenNothingRun (Just a) _ = pure (Just a)
 whenNothingRun Nothing f = f >> pure Nothing
@@ -154,20 +145,8 @@ timeitEnd c t = void do
   let dnano = toNanoSecs $ diffTimeSpec t t'
   tellInfo c $ fmtNanosecondsAsSeconds dnano
 
-stringErrorToFail :: P.Fail :> r => P.Sem (P.Error String : r) a -> P.Sem r a
-stringErrorToFail =
-  P.runError >=> \case
-    Left e -> fail e
-    Right v -> return v
-
 runSyncInIO :: [P.Final IO, P.Embed IO] :>> r => P.Sem (P.Sync d : P.Race : r) a -> P.Sem r a
 runSyncInIO = P.interpretRace . P.interpretSync
-
-readFileTextP :: [P.Embed IO, P.Error String] :>> r => String -> P.Sem r Text
-readFileTextP fp =
-  fromRightM (P.throw . (("Error while decoding " <> fp) <>) . show)
-    . T.decodeUtf8'
-    =<< readFileBS fp
 
 sleep :: MonadIO m => Double -> m ()
 sleep seconds = liftIO $ threadDelay $ truncate (seconds * 1_000_000)
@@ -181,13 +160,3 @@ debug = P.debug @Text
 info = P.info @Text
 
 warning = P.warning @Text
-
-newtype RegexCompilationException = RegexCompilationException Text
-  deriving stock (Show)
-  deriving anyclass (Exception)
-
-tryFromWrapExc :: (Bifunctor p, Exception e) => source -> p e c -> p (TryFromException source target) c
-tryFromWrapExc src = first $ TryFromException src . Just . SomeException
-
-compileRegexExc :: (Bifunctor p, MonadFail (p Text)) => String -> p RegexCompilationException TDFA.RE
-compileRegexExc = first RegexCompilationException . TDFA.compileRegex

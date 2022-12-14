@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Prelude
   ( module Optics,
     module Optics.TH,
@@ -17,8 +19,8 @@ import Data.String.Interpolate (i)
 import Optics (to, view, (%), (%?), (%~), (.~), (?~), (^.))
 import Optics.TH
 import qualified Polysemy as P
-import Relude hiding (group)
-import Witch (From (from), TryFrom (tryFrom), TryFromException (..), into, tryInto)
+import Relude hiding (group, (?:))
+import Witch (From (from), TryFrom (tryFrom), TryFromException (..), into, tryInto, via)
 
 default (Text)
 
@@ -37,3 +39,9 @@ infixr 5 ++
 (<.>) f g x = f <$> g x
 
 infixl 4 <.>
+
+instance ToString a => From a String where
+  from = toString
+
+instance IsString a => From String a where
+  from = fromString

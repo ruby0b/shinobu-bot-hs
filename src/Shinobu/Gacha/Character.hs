@@ -1,7 +1,5 @@
 module Shinobu.Gacha.Character where
 
-import Shinobu.Effects.IndexStore
-
 newtype Series = Series {name :: Text}
   deriving (Show, Eq, Generic)
 
@@ -16,12 +14,6 @@ data Character = Character
     series :: Series
   }
   deriving (Show, Eq, Generic)
-
-instance HasKey Character where
-  type Key Character = Integer
-  getKey = view #id
-
-type CharacterStore = IndexStore Character
 
 allChars =
   [ Character
