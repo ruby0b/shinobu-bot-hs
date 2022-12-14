@@ -1,0 +1,21 @@
+#!/usr/bin/env sh
+
+# https://docs.cachix.org/pushing#flakes
+
+cache=ruby0b-shinobu-bot-hs
+
+echo ">>> Pushing flake inputs..."
+nix flake archive --json \
+  | jq -r '.path,(.inputs|to_entries[].value.path)' \
+  | cachix push "$cache"
+
+echo ">>> Pushing runtime closure..."
+nix build --json \
+  | jq -r '.[].outputs | to_entries[].value' \
+  | cachix push "$cache"
+
+echo ">>> Pushing shell environment..."
+profile_dir="$(mktemp -d)"
+trap 'rm -rf "$profile_dir"' EXIT
+nix develop --profile "$profile_dir"
+cachix push "$cache" "$profile_dir"
