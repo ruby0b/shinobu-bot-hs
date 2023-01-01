@@ -31,11 +31,15 @@ voiceChannelMembers :: (BotC r, DiscordError :> r) => VoiceChannel -> P.Sem r [M
 voiceChannelMembers voiceChannel = do
   let guildID = view #guildID voiceChannel
       memberFromUID = upgrade . (guildID,) . coerceSnowflake
-      memberFromVoiceState = P.note "Failed to get Member" <=< memberFromUID . view #userID
+      memberFromVoiceState voiceState = memberFromUID (voiceState ^. #userID) >>= P.note "Failed to get Member"
+      correctVoiceChannel voiceState = isJust do
+        channelID <- voiceState ^. #channelID
+        guard (channelID == voiceChannel ^. #id)
   res <- getGuild guildID
   guild <- P.note "Failed to get Guild" res
   p $ guild ^. #voiceStates
-  mapM memberFromVoiceState (guild ^. #voiceStates)
+  let voiceStatesInChannel = filter correctVoiceChannel (guild ^. #voiceStates)
+  mapM memberFromVoiceState voiceStatesInChannel
 
 type VcToTc = (Integer, Snowflake VoiceChannel, Snowflake TextChannel)
 
@@ -57,9 +61,7 @@ callReaction = void
           afterID <- justZ (after ^. #channelID)
 
           -- make sure the user switched channels (or joined one)
-          justZ do
-            before <- mBefore
-            beforeID <- before ^. #channelID
+          whenJust (mBefore >>= view #channelID) \beforeID ->
             guard (beforeID /= afterID)
           p' "Switched channels"
 
