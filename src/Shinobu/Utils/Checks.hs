@@ -22,7 +22,7 @@ isAdminCtx ctx = do
         if perms .~. administrator
           then Nothing
           else Just "You have to be an administrator to use this command."
-    _ -> pure $ Just "You can't use this command outside of a server."
+    _noGuildChan -> pure $ Just "You can't use this command outside of a server."
 
 isBotOwnerCtx :: (BotC r, DB :> r) => FullContext -> P.Sem r (Maybe Text)
 isBotOwnerCtx ctx = do

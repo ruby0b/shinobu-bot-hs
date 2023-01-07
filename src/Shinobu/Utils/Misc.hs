@@ -54,16 +54,10 @@ fromRightThrow :: P.Error e :> r => (a -> e) -> Either a b -> P.Sem r b
 fromRightThrow f = either (P.throw . f) pure
 
 handleFailByLogging :: LogEff :> r => P.Sem (P.Fail : r) a -> P.Sem r ()
-handleFailByLogging =
-  P.runFail >=> \case
-    Left e -> P.error (fromString e)
-    _ -> return ()
+handleFailByLogging = P.runFail >=> either (P.error . fromString) (const $ pure ())
 
 handleExceptionByLogging :: forall e r a. (LogEff :> r, Exception e) => P.Sem (P.Error e : r) a -> P.Sem r ()
-handleExceptionByLogging =
-  P.runError >=> \case
-    Left e -> P.error (displayException e)
-    _ -> return ()
+handleExceptionByLogging = P.runError >=> either (P.error . displayException) (const $ pure ())
 
 runAtomicStateNewTVarIO ::
   P.Embed IO :> r =>
@@ -75,7 +69,7 @@ runAtomicStateNewTVarIO val sem = do
   P.runAtomicStateTVar tvar sem
 
 maybeSucc :: (Bounded a, Enum a) => a -> Maybe a
-maybeSucc = safeToEnum . succ . fromEnum
+maybeSucc = safeToEnum . (+ 1) . fromEnum
 
 tellEmbedWithColor :: (BotC r, Tellable t) => Colour.Colour Double -> t -> Text -> P.Sem r (Either RestError Message)
 tellEmbedWithColor color t msg =

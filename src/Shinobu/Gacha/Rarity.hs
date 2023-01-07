@@ -61,7 +61,7 @@ upgradeCost (Rarity t Plus) = case t of
   Common -> Just $ UnsafeMoney 10
   Rare -> Just $ UnsafeMoney 50
   Legendary -> Just $ UnsafeMoney 100
-  _ -> Nothing
+  Godlike -> Nothing
 
 rarityDist :: C.Categorical Double RarityType
 rarityDist = C.fromList [(125, Common), (25, Rare), (5, Legendary), (1, Godlike)]
