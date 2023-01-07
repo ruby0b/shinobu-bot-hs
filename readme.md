@@ -6,9 +6,9 @@ This is a rewrite of https://github.com/ruby0b/shinobu-bot-py and will eventuall
 ```nix
   inputs.shinobu-bot-hs.url = "github:ruby0b/shinobu-bot-hs";
 ```
-3. Use the overlay `inputs.shinobu-bot-hs.overlay.${system}`.
-4. Import `inputs.shinobu-bot-hs.nixosModules.default`.
-5. Enable the service in your configuration:
+2. Use the overlay `inputs.shinobu-bot-hs.overlay.${system}`.
+3. Import `inputs.shinobu-bot-hs.nixosModules.default`.
+4. Enable the service in your configuration:
 ```nix
   services.shinobu-bot-hs = {
     enable = true;
@@ -19,5 +19,5 @@ This is a rewrite of https://github.com/ruby0b/shinobu-bot-py and will eventuall
 ## Development
 Start the hoogle webserver (http://localhost:8080/):
 ```sh
-nix develop -c hoogle server >/dev/null 2>/dev/null &
+nix develop -c hoogle server
 ```
