@@ -32,7 +32,7 @@ listPacks = query [isql|SELECT * FROM pack|]
 
 searchPack :: DB :> r => Text -> P.Sem r (Maybe Pack)
 searchPack name =
-  query [isql|SELECT * FROM pack WHERE name LIKE ${toLower name}|]
+  query [isql|SELECT * FROM pack WHERE name LIKE {toLower name}|]
     <&> listToMaybe
 
 buyPack :: [P.Fail, UserError, P.RandomFu, DB] :>> r => Pack -> GachaUser -> P.Sem r ForcedWaifuGivingResult

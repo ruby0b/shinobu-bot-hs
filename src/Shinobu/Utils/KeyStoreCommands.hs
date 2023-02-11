@@ -71,7 +71,7 @@ mkDeleteCommand spec showItem = help_ [i|Delete an #{spec ^. #itemSingular}|]
   . commandA @'[Named "id" kparser] "delete" ["remove", "rm"]
   $ \ctx id_ -> tellMyErrors ctx do
     let table = into @String $ spec ^. #tableName
-    deleted <- query @sqlv [isql|DELETE FROM !{table} WHERE id=${id_} RETURNING *|]
+    deleted <- query @sqlv [isql|DELETE FROM !{table} WHERE id={id_} RETURNING *|]
     case deleted of
       [] -> do
         tellError

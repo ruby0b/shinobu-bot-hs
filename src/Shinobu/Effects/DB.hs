@@ -1,11 +1,11 @@
 module Shinobu.Effects.DB
   ( module Shinobu.Effects.DB,
-    module Database.SQLite.Simple.QQ.Interpolated,
+    module Database.SQLite.Simple.Interpolate,
   )
 where
 
 import qualified Database.SQLite.Simple as SQL
-import Database.SQLite.Simple.QQ.Interpolated (isql)
+import Database.SQLite.Simple.Interpolate (isql)
 import qualified Polysemy as P
 import Shinobu.Utils.Error
 

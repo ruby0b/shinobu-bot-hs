@@ -46,12 +46,12 @@ instance FromField Natural where
 --   [iquery|
 --   SELECT voice_id, text_id
 --   FROM voice_to_text
---   WHERE voice_id = ${voiceID}
+--   WHERE voice_id = {voiceID}
 
 -- | ]
 
 -- makeNewUser :: Key GachaUser -> Connection -> IO ()
--- makeNewUser userID = [iexecute|INSERT OR IGNORE INTO user (id) VALUES (${userID})|]
+-- makeNewUser userID = [iexecute|INSERT OR IGNORE INTO user (id) VALUES ({userID})|]
 
 -- getBirthdayPeople :: Connection -> IO [GachaUser]
 -- getBirthdayPeople =
@@ -66,9 +66,9 @@ instance FromField Natural where
 -- rewardAndUpdateBirthday userID giftAmount =
 --   [iexecute|
 --   UPDATE user
---   SET balance = balance + ${giftAmount}
+--   SET balance = balance + {giftAmount}
 --   ,   birthday = DATE(birthday, '+1 years')
---   WHERE id = ${userID}
+--   WHERE id = {userID}
 
 -- | ]
 
@@ -89,12 +89,12 @@ instance FromField Natural where
 --   FROM pack
 --   WHERE (pack.start_date <= DATE('NOW', 'LOCALTIME'))
 --   AND (pack.end_date IS NULL OR pack.end_date >= DATE('NOW', 'LOCALTIME'))
---   AND name LIKE ${packName}
+--   AND name LIKE {packName}
 
 -- | ]
 
 -- getUserByID :: Key GachaUser -> Connection -> IO [GachaUser]
--- getUserByID userID = [iquery|SELECT * FROM user WHERE id = ${userID}|]
+-- getUserByID userID = [iquery|SELECT * FROM user WHERE id = {userID}|]
 
 -- listRarities :: Connection -> IO [Rarity]
 -- listRarities = [iquery|SELECT * FROM rarity|]

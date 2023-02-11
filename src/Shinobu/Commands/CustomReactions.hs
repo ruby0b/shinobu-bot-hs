@@ -57,7 +57,7 @@ customReactions = void
         help_ [i|Add a new #{spec ^. #itemSingular}|]
           . command @'[Named "pattern to match" RegExp, Named "my response" Text] "add"
           $ \ctx (view #regex -> regex) response -> tellMyErrors ctx do
-            execute [isql|INSERT INTO !{table} (voice_channel, text_channel) VALUES (${reSource regex}, ${response})|]
+            execute [isql|INSERT INTO !{table} (voice_channel, text_channel) VALUES ({reSource regex}, {response})|]
             tellSuccess ctx [i|Understood!\nI will now respond to the pattern #{fmtTDFA regex} by saying:\n#{quote response}|]
 
         mkListCommand spec \(id_, pattern_, response) ->
