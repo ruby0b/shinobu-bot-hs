@@ -13,9 +13,3 @@ echo ">>> Pushing runtime closure..."
 nix build --json \
   | jq -r '.[].outputs | to_entries[].value' \
   | cachix push "$cache"
-
-echo ">>> Pushing shell environment..."
-profile_dir="$(mktemp -d)"
-trap 'rm -rf "$profile_dir"' EXIT
-nix develop --profile "$profile_dir"
-cachix push "$cache" "$profile_dir"

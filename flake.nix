@@ -12,21 +12,11 @@
       let
         overlays = [
           inputs.haskellNix.overlay
-          # why is this required even though sqlite3 is aliased in haskell.nix?
-          (final: prev: { sqlite3 = final.sqlite; })
           (final: prev: {
+            sqlite3 = final.sqlite; # why is this required even though sqlite3 is aliased in haskell.nix?
             shinobu-bot = final.haskell-nix.project' {
               src = ./.;
               compiler-nix-name = "ghc928";
-              shell = {
-                tools = {
-                  cabal = { };
-                };
-                buildInputs = with pkgs; [
-                  nixpkgs-fmt
-                  haskellPackages.cabal-fmt
-                ];
-              };
             };
           })
         ];
