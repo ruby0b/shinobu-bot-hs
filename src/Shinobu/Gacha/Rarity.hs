@@ -66,7 +66,4 @@ upgradeCost (Rarity t Plus) = case t of
 rarityDist :: C.Categorical Double RarityType
 rarityDist = C.fromList [(125, Common), (25, Rare), (5, Legendary), (1, Godlike)]
 
-sampleBasic :: P.RandomFu :> r => P.Sem r Rarity
-sampleBasic = do
-  rarityT <- P.sampleDist rarityDist
-  return (Rarity rarityT Basic)
+sampleRarityType = P.sampleDist rarityDist

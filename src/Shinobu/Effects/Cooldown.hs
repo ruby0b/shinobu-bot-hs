@@ -24,7 +24,7 @@ whenNotReady f =
 
 -- | 'empty' if we're not  ready yet; do nothing if we are.
 assertReady :: [Cooldown, P.NonDet] :>> r => P.Sem r ()
-assertReady = whenNotReady $ const mzero
+assertReady = whenNotReady $ const empty
 
 runCooldown ::
   P.Embed IO :> r =>

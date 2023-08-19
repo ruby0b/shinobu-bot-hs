@@ -92,7 +92,7 @@ callReaction = void
           $ \ctx vcId tcId -> tellMyErrors ctx do
             upgrade vcId >>?! P.throw [i|Invalid Voice Channel: #{vcId}|]
             upgrade tcId >>?! P.throw [i|Invalid Text Channel: #{tcId}|]
-            execute [isql|INSERT INTO !{table} (voice_channel, text_channel) VALUES ({vcId}, {tcId})|]
+            execute [isql|INSERT INTO !{table} (voice_id, text_id) VALUES ({vcId}, {tcId})|]
             refresh
             tellSuccess ctx [i|Understood!\nI will notify the channel #{mention tcId} whenever a call is started in #{mention vcId}|]
 

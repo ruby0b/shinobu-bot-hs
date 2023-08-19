@@ -25,7 +25,7 @@ handlePackBuyResult = \case
 
 packCmd :: ShinobuSem r
 packCmd = void $
-  help_ "Buy a pack with the given name. List all currently available packs if given no"
+  help_ "Buy a pack with the given name. List all currently available packs otherwise"
     . command @'[Named "pack name" (Maybe Text)] "pack"
     $ \ctx ->
       tellMyErrors ctx . \case

@@ -4,9 +4,9 @@ import Data.Random.List (randomElement)
 import Data.Text (toLower)
 import Data.Time (Day)
 import Database.SQLite.Simple (FromRow (..), field)
-import qualified Polysemy as P
-import qualified Polysemy.Fail as P
-import qualified Polysemy.RandomFu as P
+import Polysemy qualified as P
+import Polysemy.Fail qualified as P
+import Polysemy.RandomFu qualified as P
 import Shinobu.Effects.DB
 import Shinobu.Gacha.Character
 import Shinobu.Gacha.Economy
@@ -43,7 +43,9 @@ buyPack pack buyer = do
 
 sampleWaifu :: P.RandomFu :> r => Pack -> P.Sem r Waifu
 sampleWaifu pack = do
-  rarity <- sampleBasic
+  rarity <- do
+    rarityT <- sampleRarityType
+    return $ Rarity rarityT Basic
   character <- sampleCharacter pack rarity
   return (Waifu character rarity)
 
