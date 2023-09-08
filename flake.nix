@@ -1,6 +1,17 @@
 {
   description = "A discord bot";
 
+  nixConfig = {
+    extra-substituters = [
+      "https://cache.iog.io"
+      "https://ruby0b-shinobu-bot-hs.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
+      "ruby0b-shinobu-bot-hs.cachix.org-1:TpMb5FydHfvsajgFOtZ8CQX7sw0GP9z8gNqlMH070x0="
+    ];
+  };
+
   inputs = {
     haskellNix.url = "github:input-output-hk/haskell.nix";
     nixpkgs.follows = "haskellNix/nixpkgs-unstable";
