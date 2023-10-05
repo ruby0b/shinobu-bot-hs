@@ -8,12 +8,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2.4.0
-    - uses: cachix/install-nix-action@v17
+    - uses: cachix/install-nix-action@v20
       with:
         nix_path: nixpkgs=channel:nixos-unstable
     - run: |
         mkdir -p $HOME/.config/nix/
-        echo "substituters = https://cache.nixos.org https://hydra.iohk.io" >> $HOME/.config/nix/nix.conf
+        echo "substituters = https://cache.nixos.org https://cache.iog.io" >> $HOME/.config/nix/nix.conf
         echo "trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=" >> $HOME/.config/nix/nix.conf
     - uses: cachix/cachix-action@v10
       with:
