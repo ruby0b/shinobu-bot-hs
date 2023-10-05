@@ -4,8 +4,6 @@ import Calamity
 import Calamity.Commands
 import Data.Random (stdUniform)
 import qualified Polysemy.RandomFu as P
-import Shinobu.Gacha.User (allUserIds, getOrCreateUser)
-import Shinobu.Utils.Error
 import Shinobu.Utils.Misc
 import Shinobu.Utils.Types
 
@@ -32,20 +30,6 @@ miscCommands = void do
     . command @'[] "source"
     $ \ctx -> void do
       tellInfo ctx "The source code for this bot is available at https://github.com/ruby0b/shinobu-bot-hs"
-
-  help_ "list all users"
-    . command @'[] "list-users"
-    $ \ctx -> void do
-      ids <- allUserIds
-      if null ids
-        then tellInfo ctx "No users!"
-        else tellInfo ctx . unlines . map show $ ids
-
-  help_ "add a user"
-    . command @'[Named "user" User] "add-user"
-    $ \ctx user -> tellMyErrors ctx do
-      getOrCreateUser . fromSnowflake . view #id $ user
-      tellInfo ctx [i|Successfully added #{mention user} ✔️|]
 
   help_ "beep boop"
     . command @'[] "fail"

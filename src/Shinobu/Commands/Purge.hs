@@ -2,7 +2,6 @@ module Shinobu.Commands.Purge where
 
 import Calamity
 import Calamity.Commands
-import qualified Control.Foldl as L
 import Data.Time (getCurrentTime)
 import qualified Polysemy as P
 import qualified Polysemy.NonDet as P
@@ -11,7 +10,6 @@ import Shinobu.Utils.Checks
 import Shinobu.Utils.Error
 import Shinobu.Utils.Misc
 import Shinobu.Utils.Parsers
-import qualified Shinobu.Utils.Streaming as S
 import Shinobu.Utils.Types
 import qualified Streaming.Prelude as S
 import Text.RE.TDFA
@@ -51,13 +49,3 @@ purgeCmd = void do
           & S.take limit
           & deleteManyMessages ctx
         deleteMessage ctx ctx
-
-spamCmd :: ShinobuSem r
-spamCmd = void do
-  help_ "Spam messages"
-    . requiresAdmin
-    . command @'[Named "amount" Int] "spam"
-    $ \ctx amount -> void do
-      S.replicateM amount (tell ctx "OwO")
-        & S.map void
-        & delayedChunks 3 1 (L.purely S.fold S.firstLeft)

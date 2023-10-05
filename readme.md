@@ -1,5 +1,5 @@
 # shinobu-bot
-This is a rewrite of https://github.com/ruby0b/shinobu-bot-py and will eventually supersede it.
+Partial rewrite of https://github.com/ruby0b/shinobu-bot-py in Haskell.
 
 ## Deployment (using nix flakes)
 1. Add the flake to your inputs:

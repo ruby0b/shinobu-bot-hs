@@ -1,8 +1,6 @@
 packages: ./
 with-compiler: ghc-9.2.8
-index-state: 2023-02-09T00:00:00Z
-
-allow-newer: polysemy-zoo:ghc-prim
+index-state: 2023-10-01T00:00:00Z
 
 source-repository-package
     type: git

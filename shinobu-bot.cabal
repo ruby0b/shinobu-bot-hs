@@ -18,18 +18,9 @@ executable shinobu-bot
     Shinobu.Commands.Misc
     Shinobu.Commands.Purge
     Shinobu.Commands.RemoteSQL
-    Shinobu.Commands.Shop
     Shinobu.Effects.Cache
     Shinobu.Effects.Cooldown
     Shinobu.Effects.DB
-    Shinobu.Gacha
-    Shinobu.Gacha.Character
-    Shinobu.Gacha.Economy
-    Shinobu.Gacha.Embeds
-    Shinobu.Gacha.Pack
-    Shinobu.Gacha.Rarity
-    Shinobu.Gacha.User
-    Shinobu.Gacha.Waifu
     Shinobu.Utils.Calamity
     Shinobu.Utils.Checks
     Shinobu.Utils.DB
@@ -43,7 +34,7 @@ executable shinobu-bot
   build-depends:
     , base                       >=4.14     && <5
     , boxes                      >=0.1.5
-    , calamity                   >=0.7.1.0
+    , calamity                   >=0.10.0.0
     , calamity-commands          >=0.4.0.0
     , clock                      >=0.8.3
     , colour                     >=2.3.6

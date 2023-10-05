@@ -21,7 +21,6 @@ import Shinobu.Commands.ErrorHandling
 import Shinobu.Commands.Misc
 import Shinobu.Commands.Purge
 import Shinobu.Commands.RemoteSQL
-import Shinobu.Commands.Shop
 import Shinobu.Effects.Cooldown
 import qualified Shinobu.Effects.DB as DB
 import Shinobu.Utils.Error
@@ -51,10 +50,8 @@ main = do
     $ addCommands do
       helpCommand
       miscCommands
-      packCmd
       customReactions
       callReaction
       tellErrors
       remoteSQLCmd
       purgeCmd
-      spamCmd

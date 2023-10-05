@@ -107,7 +107,7 @@ deleteManyMessagesOneByOne ::
   S.Stream (S.Of m) (P.Sem r) s ->
   P.Sem r (S.Of (Either RestError ()) s)
 deleteManyMessagesOneByOne c =
-  -- TODO: don't think sleeping every 100 deletions is necessary here, discord.py does it
+  -- TODO: don't think sleeping every 100 deletions is necessary here, but discord.py does it
   delayedChunks 100 1 $
     S.mapM (invoke . DeleteMessage c)
       >>> L.purely S.fold S.firstLeft
